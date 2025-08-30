@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import os
 from typing import Optional, List
 
@@ -13,6 +14,17 @@ def project_root() -> str:
 
 
 app = FastAPI(title="Kaomoji Generator", version="0.1.0")
+
+# CORS (默认允许所有，亦可用环境变量限定)
+allow_origins = os.getenv("CORS_ALLOW_ORIGINS", "*")
+origins = [o.strip() for o in allow_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if origins == ["*"] else origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/api/generate")

@@ -9,12 +9,25 @@ from typing import List, Dict, Callable
 # 关键词到类别
 KEY2CAT = {
     "猫": "cat", "喵": "cat", "小猫": "cat",
-    "狗": "dog", "汪": "dog", "小狗": "dog",
-    "哭": "cry", "难过": "cry", "伤心": "cry", "委屈": "cry", "呜呜": "cry",
-    "开心": "happy", "高兴": "happy", "笑": "happy",
-    "生气": "angry", "愤怒": "angry", "凶": "angry",
-    "困": "sleepy", "困了": "sleepy", "累": "sleepy", "疲惫": "sleepy",
+    "猫猫": "cat",
+    "狗": "dog", "汪": "dog", "小狗": "dog", "狗狗": "dog",
+    "哭": "cry", "难过": "cry", "伤心": "cry", "委屈": "cry", "呜呜": "cry", "哭哭": "cry", "难受": "cry",
+    "开心": "happy", "高兴": "happy", "笑": "happy", "喜": "happy",
+    "生气": "angry", "愤怒": "angry", "凶": "angry", "气": "angry",
+    "困": "sleepy", "困了": "sleepy", "累": "sleepy", "疲惫": "sleepy", "困倦": "sleepy",
     "可爱": "cute", "卖萌": "cute", "萌": "cute",
+    # 其他常见：映射到专名或先归 misc，优先用样本
+    "耸肩": "shrug", "摊手": "shrug",
+    "翻桌": "tableflip", "掀桌": "tableflip",
+    "扶桌": "unflip", "修复桌": "unflip",
+    "亲亲": "kiss", "接吻": "kiss",
+    "抱抱": "hug", "拥抱": "hug",
+    "害羞": "shy", "腼腆": "shy",
+    "惊讶": "surprise", "吃惊": "surprise",
+    "思考": "think", "沉思": "think",
+    "流汗": "sweat", "汗": "sweat",
+    "派对": "party", "撒花": "party",
+    "祝福": "bless", "祈福": "bless",
 }
 
 # 通用装饰与部件库
@@ -144,11 +157,13 @@ GEN: Dict[str, Callable[[List[str]], str]] = {
 }
 
 
-def to_category(words: List[str]) -> str:
+def to_category_label(words: List[str]) -> str:
+    # 先映射到已知标签；否则用第一个关键词作为标签；最终兜底为 happy
     for w in words:
-        if KEY2CAT.get(w) in GEN:
-            return KEY2CAT[w]
-    return "happy"
+        tag = KEY2CAT.get(w)
+        if tag:
+            return tag
+    return words[0] if words else "happy"
 
 
 def load_samples(path: str) -> Dict[str, List[str]]:
@@ -188,15 +203,20 @@ def mutate_from_sample(sample: str) -> str:
 def generate(keywords: List[str], n: int = 6, seed: int = None, samples_path: str = "data/kaomoji.json") -> List[str]:
     if seed is not None:
         random.seed(seed)
-    cat = to_category(keywords)
+    cat_label = to_category_label(keywords)
     styles = [w for w in keywords if w in ("可爱", "卖萌", "萌", "简洁", "极简", "高冷", "夸张", "浮夸")]
-    fn = GEN.get(cat, gen_happy)
+    fn = GEN.get(cat_label, gen_happy)
 
     # 样本优先：从近似类别样本做轻改
     samples = load_samples(samples_path)
     pool: List[str] = []
-    if cat in samples and samples[cat]:
-        base = random.sample(samples[cat], min(len(samples[cat]), max(4, n)))
+    # 1) 若该标签在样本里，优先基于样本生成
+    if cat_label in samples and samples[cat_label]:
+        base = random.sample(samples[cat_label], min(len(samples[cat_label]), max(4, n)))
+        pool.extend([mutate_from_sample(b) for b in base])
+    # 2) 若该标签无模板但 misc 有样本，且该标签也不在 GEN 中，则用 misc 弹性兜底
+    elif cat_label not in GEN and samples.get("misc"):
+        base = random.sample(samples["misc"], min(len(samples["misc"]), max(4, n)))
         pool.extend([mutate_from_sample(b) for b in base])
 
     # 模板补齐

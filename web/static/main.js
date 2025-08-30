@@ -7,11 +7,18 @@ const statusEl = document.getElementById('status');
 
 function setStatus(msg){ statusEl.textContent = msg || '' }
 
+function getApiBase(){
+  const p = new URLSearchParams(location.search);
+  const api = p.get('api');
+  return api ? api.replace(/\/$/, '') : '';
+}
+
 async function generate(){
   const kws = (kw.value || '猫 可爱').trim();
   const n = Math.max(1, Math.min(30, parseInt(num.value || '8', 10)));
   const s = seed.value ? `&seed=${encodeURIComponent(seed.value)}` : '';
-  const url = `/api/generate?keywords=${encodeURIComponent(kws)}&n=${n}${s}`;
+  const base = getApiBase();
+  const url = `${base}/api/generate?keywords=${encodeURIComponent(kws)}&n=${n}${s}`;
   setStatus('生成中…');
   try{
     const res = await fetch(url);

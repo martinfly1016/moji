@@ -107,12 +107,39 @@ def categorize(face: str) -> str:
     # Sleepy
     if any(x in t for x in ["zZ", "Zz", "｡oO", "-_-", "(－_－)"]):
         return "sleepy"
+    # Shrug / Tableflip / Unflip
+    if "\\_(ツ)_/" in t or "¯\\_" in t:
+        return "shrug"
+    if "┻━┻" in t or "翻桌" in t or "╯°□°）╯" in t or "╯︵" in t:
+        return "tableflip"
+    if "┬─┬" in t and ("ノ(" in t or "ノ( ゜-゜ノ)" in t):
+        return "unflip"
     # Cat
     if "=^" in t or "ฅ" in t or "ᆺ" in t or "ↀ" in t:
         return "cat"
     # Dog
     if "ᴥ" in t or "（U・" in t or "(U･" in t or "∪･" in t:
         return "dog"
+    # Bear
+    if "ʕ" in t and "ʔ" in t:
+        return "bear"
+    # Kiss / Hug / Shy / Surprise / Sweat / Party / Bless / Think
+    if any(x in t for x in [" 3 ", "³", "з", "chu"]):
+        return "kiss"
+    if "づ" in t or "つ" in t:
+        return "hug"
+    if "///" in t or "〃" in t or "///" in t:
+        return "shy"
+    if any(x in t for x in ["°□°", "ﾟдﾟ", "O_O", "o_o", "O_o", "o_O"]):
+        return "surprise"
+    if any(x in t for x in ["(^_^;)", "；", ";)"]):
+        return "sweat"
+    if any(x in t for x in ["✿", "✧", "(^o^)/", "ヽ(＾▽＾)ノ", "\(^_^)/*"]):
+        return "party"
+    if any(x in t for x in ["祈", "✟", "†"]):
+        return "bless"
+    if any(x in t for x in ["(・へ・)", "(ー_ー)!!", "(；一_一)"]):
+        return "think"
     # Happy
     if any(x in t for x in ["＾▽＾", "^_^", "(＾", "≧▽≦", "٩", "(￣", "(⌒", "♪", "✧", "(˶ᵔ"]):
         return "happy"
@@ -176,4 +203,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
