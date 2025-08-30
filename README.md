@@ -26,6 +26,13 @@ Kaomoji Generator（绘文字生成器）
   - textfac.es（ASCII/表情集合）
   - “donger list”/“kaomoji list” 相关检索（GitHub 与网页上有不少整理）
 
+导入脚本（可选）
+- 抓取/导入：`python tools/import_samples.py --sources data/sources.txt --out data/kaomoji.json`
+- 说明：
+  - 支持文本/JSON/部分HTML（<code>/<li>）
+  - 自动去重并按启发式归类到 cat/dog/cry/happy/angry/sleepy/misc
+  - 可编辑 `data/sources.txt` 添加更多来源
+
 GitHub 仓库
 - 本地确认运行后，可初始化为仓库并推送到 GitHub。
 - 若需我这边代操作：请提供仓库名、公开/私有偏好，以及是否使用 GitHub CLI（`gh`）。

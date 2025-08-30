@@ -1,0 +1,18 @@
+# 一行一个来源URL；支持文本/JSON/简单HTML（<code>/<li>）
+# 你可在此追加更多来源
+
+# 典型集合（GitHub / 公开页面）；如果失败，可以替换为你信任的列表
+https://raw.githubusercontent.com/taivop/emoji-list/master/kaomoji.txt
+https://raw.githubusercontent.com/atopal/text-emoticons/master/emoticons.txt
+https://raw.githubusercontent.com/muan/emojilib/master/kaomojis.json
+https://raw.githubusercontent.com/ssut/kaomoji/master/kaomoji.txt
+https://raw.githubusercontent.com/joaochiaverini/kaomoji/master/kaomoji.txt
+https://raw.githubusercontent.com/itsjavi/kaomoji/master/kaomoji.txt
+https://raw.githubusercontent.com/iwazaru/kaomoji/master/kaomoji.json
+https://raw.githubusercontent.com/abouthiroppy/awesome-kaomoji/master/kaomoji.json
+https://raw.githubusercontent.com/guillaumearm/kaomoji/master/kaomoji.txt
+
+# 网页（解析较脆弱，尽量放在文本/JSON之后）
+https://dongerlist.com
+https://textfac.es
+https://japaneseemoticons.me/kaomoji/
