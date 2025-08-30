@@ -7,7 +7,13 @@ from typing import Optional, List
 import re
 
 # 复用本项目的生成器
-from kaomoji_generator import generate as gen, score_faces
+from kaomoji_generator import (
+    generate as gen,
+    score_faces,
+    score_face,
+    KEY2CAT,
+    load_samples,
+)
 
 
 def project_root() -> str:
@@ -45,6 +51,38 @@ def api_generate(
     scores = score_faces(faces, words)
     items = [{"text": t, "score": int(sc)} for t, sc in zip(faces, scores)]
     return JSONResponse({"keywords": words, "lang": lang, "count": len(items), "items": items, "texts": faces})
+
+
+@app.get("/api/explore")
+def api_explore(
+    min_score: int = Query(1, ge=0, le=100, description="计入统计的最小相关度"),
+    limit: int = Query(5, ge=1, le=20, description="每个词返回的示例数量"),
+):
+    samples_path = os.path.join(project_root(), "data", "kaomoji.json")
+    samples = load_samples(samples_path)
+    results = []
+
+    for word, label in KEY2CAT.items():
+        faces = samples.get(label, []) or []
+        scored = [(f, score_face(f, [word])) for f in faces]
+        scored = [(f, s) for (f, s) in scored if s >= min_score]
+        if not scored:
+            continue
+        scored.sort(key=lambda x: x[1], reverse=True)
+        count = len(scored)
+        avg = sum(s for _, s in scored) / count if count else 0
+        top = [{"text": f, "score": int(s)} for f, s in scored[:limit]]
+        results.append({
+            "word": word,
+            "label": label,
+            "count": count,
+            "avg_score": int(round(avg)),
+            "max_score": int(scored[0][1]),
+            "examples": top,
+        })
+
+    results.sort(key=lambda r: (r["count"], r["avg_score"], r["max_score"]), reverse=True)
+    return JSONResponse({"total": len(results), "items": results})
 
 
 # 静态站点（单页应用）
