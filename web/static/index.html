@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>绘文字生成器</title>
+    <style>
+      body{font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial; margin: 24px;}
+      h1{font-size: 20px; margin: 0 0 16px}
+      .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+      input[type=text]{flex:1; min-width:200px; padding:8px 10px; font-size:14px}
+      input[type=number]{width:90px; padding:6px 8px}
+      button{padding:8px 14px; font-size:14px; cursor:pointer}
+      .chips{margin:8px 0; display:flex; gap:8px; flex-wrap:wrap}
+      .chip{border:1px solid #ddd; padding:4px 8px; border-radius:12px; cursor:pointer;}
+      .results{margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px}
+      .card{border:1px solid #eee; border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center}
+      .emo{font-size:18px; word-break:break-all}
+      .copy{font-size:12px; color:#06c; cursor:pointer; user-select:none}
+      .muted{color:#666; font-size:12px}
+    </style>
+  </head>
+  <body>
+    <h1>绘文字生成器</h1>
+    <div class="row">
+      <input id="kw" type="text" placeholder="输入关键词，如：猫 可爱 / 狗 简洁 / 哭 夸张" />
+      <label>数量 <input id="num" type="number" min="1" max="30" value="8"/></label>
+      <label>种子 <input id="seed" type="number" placeholder="可选"/></label>
+      <button id="go">生成</button>
+    </div>
+    <div class="chips">
+      <div class="muted">快速添加：</div>
+      <div class="chip" data-add="猫">猫</div>
+      <div class="chip" data-add="狗">狗</div>
+      <div class="chip" data-add="哭">哭</div>
+      <div class="chip" data-add="可爱">可爱</div>
+      <div class="chip" data-add="简洁">简洁</div>
+      <div class="chip" data-add="夸张">夸张</div>
+    </div>
+    <div id="status" class="muted"></div>
+    <div id="results" class="results"></div>
+
+    <script src="/main.js"></script>
+  </body>
+  </html>
