@@ -1,4 +1,5 @@
 const kw = document.getElementById('kw');
+const langSel = document.getElementById('lang');
 const num = document.getElementById('num');
 const seed = document.getElementById('seed');
 const go = document.getElementById('go');
@@ -18,7 +19,7 @@ async function generate(){
   const n = Math.max(1, Math.min(30, parseInt(num.value || '8', 10)));
   const s = seed.value ? `&seed=${encodeURIComponent(seed.value)}` : '';
   const base = getApiBase();
-  const url = `${base}/api/generate?keywords=${encodeURIComponent(kws)}&n=${n}${s}`;
+  const url = `${base}/api/generate?keywords=${encodeURIComponent(kws)}&n=${n}${s}&lang=${encodeURIComponent(langSel.value)}`;
   setStatus('生成中…');
   try{
     const res = await fetch(url);
@@ -65,17 +66,38 @@ function render(items){
   });
 }
 
-document.querySelectorAll('.chip').forEach(c => {
-  c.addEventListener('click', () => {
-    const add = c.getAttribute('data-add');
-    const parts = kw.value.trim().split(/\s+/).filter(Boolean);
-    if(!parts.includes(add)) parts.push(add);
-    kw.value = parts.join(' ');
-  })
+function renderChips(){
+  const el = document.getElementById('chips');
+  el.innerHTML = '';
+  const muted = document.createElement('div');
+  muted.className = 'muted';
+  muted.textContent = langSel.value === 'ja' ? 'クイック追加:' : '快速添加：';
+  el.appendChild(muted);
+  const zh = ['猫','狗','哭','可爱','简洁','夸张'];
+  const ja = ['猫','犬','泣く','かわいい','シンプル','派手'];
+  const arr = langSel.value === 'ja' ? ja : zh;
+  arr.forEach(w => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = w;
+    c.addEventListener('click', () => {
+      const parts = kw.value.trim().split(/\s+/).filter(Boolean);
+      if(!parts.includes(w)) parts.push(w);
+      kw.value = parts.join(' ');
+    });
+    el.appendChild(c);
+  });
+}
+
+langSel.addEventListener('change', () => {
+  kw.placeholder = langSel.value === 'ja' ? 'キーワード例: 猫 かわいい / 犬 シンプル / 泣く 派手' : '输入关键词，如：猫 可爱 / 狗 简洁 / 哭 夸张';
+  kw.value = langSel.value === 'ja' ? '猫 かわいい' : '猫 可爱';
+  renderChips();
 });
 
 go.addEventListener('click', generate);
 
 // 初始示例
 kw.value = '猫 可爱';
+renderChips();
 generate();

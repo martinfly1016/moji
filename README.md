@@ -18,6 +18,13 @@ Kaomoji Generator（绘文字生成器）
 - 打开：`http://localhost:8000`（内置静态页面，可直接生成/复制）
 - API：`GET /api/generate?keywords=猫 可爱&n=8&seed=42`
 
+语言切换
+- Web 页面左侧可选择语言：简体中文／日本語。
+- API 亦支持 `lang` 参数：`/api/generate?keywords=猫 かわいい&lang=ja`。
+- 日文关键词示例：
+  - 类别：`猫 / 犬 / 泣く / 嬉しい / 怒る / 眠い`
+  - 风格：`かわいい / シンプル / 派手`
+
 数据扩展
 - 在 `data/kaomoji.json` 里按类别新增样例；生成器会优先以样例做“基模板+轻改”。
 - 推荐的公开样本来源（人工确认后再导入）：

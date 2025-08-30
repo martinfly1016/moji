@@ -8,14 +8,39 @@ from typing import List, Dict, Callable, Tuple
 
 # 关键词到类别
 KEY2CAT = {
-    "猫": "cat", "喵": "cat", "小猫": "cat",
-    "猫猫": "cat",
+    "猫": "cat", "喵": "cat", "小猫": "cat", "猫猫": "cat",
+    # Japanese synonyms - cat
+    "ねこ": "cat", "ネコ": "cat", "にゃ": "cat", "にゃん": "cat", "ニャン": "cat",
+
     "狗": "dog", "汪": "dog", "小狗": "dog", "狗狗": "dog",
+    # Japanese synonyms - dog
+    "犬": "dog", "いぬ": "dog", "イヌ": "dog", "わん": "dog", "ワン": "dog",
+
     "哭": "cry", "难过": "cry", "伤心": "cry", "委屈": "cry", "呜呜": "cry", "哭哭": "cry", "难受": "cry",
+    # Japanese synonyms - cry
+    "泣": "cry", "泣く": "cry", "涙": "cry", "なみだ": "cry", "悲しい": "cry", "かなしい": "cry",
+
     "开心": "happy", "高兴": "happy", "笑": "happy", "喜": "happy",
+    # Japanese synonyms - happy
+    "嬉しい": "happy", "うれしい": "happy", "楽しい": "happy", "笑う": "happy", "にこ": "happy",
+
     "生气": "angry", "愤怒": "angry", "凶": "angry", "气": "angry",
+    # Japanese synonyms - angry
+    "怒": "angry", "怒る": "angry", "怒り": "angry", "むかつく": "angry", "ぷんぷん": "angry",
+
     "困": "sleepy", "困了": "sleepy", "累": "sleepy", "疲惫": "sleepy", "困倦": "sleepy",
+    # Japanese synonyms - sleepy
+    "眠い": "sleepy", "ねむい": "sleepy", "眠たい": "sleepy", "ねむたい": "sleepy", "おやすみ": "sleepy",
+
     "可爱": "cute", "卖萌": "cute", "萌": "cute",
+    # Japanese synonyms - style cute
+    "かわいい": "cute", "可愛い": "cute", "萌え": "cute", "キュート": "cute",
+    # Style words (mapped for bias only)
+    "简洁": "simple", "极简": "simple", "高冷": "simple",
+    "夸张": "flashy", "浮夸": "flashy",
+    # Japanese style
+    "シンプル": "simple", "簡素": "simple", "ミニマル": "simple", "クール": "simple",
+    "派手": "flashy", "ド派手": "flashy",
     # 其他常见：映射到专名或先归 misc，优先用样本
     "耸肩": "shrug", "摊手": "shrug",
     "翻桌": "tableflip", "掀桌": "tableflip",
@@ -177,13 +202,13 @@ def score_faces(faces: List[str], keywords: List[str]) -> List[int]:
 
 def bias(parts: Dict[str, List[str]], styles: List[str]) -> Dict[str, List[str]]:
     out = {k: v[:] for k, v in parts.items()}
-    if any(s in styles for s in ["可爱", "卖萌", "萌"]):
+    if any(s in styles for s in ["可爱", "卖萌", "萌", "かわいい", "可愛い", "萌え", "キュート"]):
         for key in out:
             out[key] = [x for x in out[key] if any(c in x for c in ["ω", "ᵕ", "ᵔ", "♡", "♥", "✧", "･", "•", "▽", "∀"])] or out[key]
-    if any(s in styles for s in ["简洁", "极简", "高冷"]):
+    if any(s in styles for s in ["简洁", "极简", "高冷", "シンプル", "簡素", "ミニマル", "クール"]):
         for key in out:
             out[key] = [x for x in out[key] if all(c not in x for c in ["♡", "♥", "✧", "♪", "彡", "｡", "ﾟ", "~"])] or out[key]
-    if any(s in styles for s in ["夸张", "浮夸"]):
+    if any(s in styles for s in ["夸张", "浮夸", "派手", "ド派手"]):
         for key in out:
             out[key] = out[key] + out[key]
     return out
@@ -301,7 +326,12 @@ def generate(keywords: List[str], n: int = 6, seed: int = None, samples_path: st
     if seed is not None:
         random.seed(seed)
     cat_label = to_category_label(keywords)
-    styles = [w for w in keywords if w in ("可爱", "卖萌", "萌", "简洁", "极简", "高冷", "夸张", "浮夸")]
+    styles = [
+        w for w in keywords
+        if w in ("可爱", "卖萌", "萌", "简洁", "极简", "高冷", "夸张", "浮夸",
+                 "かわいい", "可愛い", "萌え", "キュート", "シンプル", "簡素", "ミニマル", "クール", "派手", "ド派手")
+        or KEY2CAT.get(w) in ("cute", "simple", "flashy")
+    ]
     fn = GEN.get(cat_label, gen_happy)
 
     # 样本优先：从近似类别样本做轻改

@@ -23,20 +23,16 @@
   <body>
     <h1>绘文字生成器</h1>
     <div class="row">
+      <select id="lang">
+        <option value="zh">简体中文</option>
+        <option value="ja">日本語</option>
+      </select>
       <input id="kw" type="text" placeholder="输入关键词，如：猫 可爱 / 狗 简洁 / 哭 夸张" />
       <label>数量 <input id="num" type="number" min="1" max="30" value="8"/></label>
       <label>种子 <input id="seed" type="number" placeholder="可选"/></label>
       <button id="go">生成</button>
     </div>
-    <div class="chips">
-      <div class="muted">快速添加：</div>
-      <div class="chip" data-add="猫">猫</div>
-      <div class="chip" data-add="狗">狗</div>
-      <div class="chip" data-add="哭">哭</div>
-      <div class="chip" data-add="可爱">可爱</div>
-      <div class="chip" data-add="简洁">简洁</div>
-      <div class="chip" data-add="夸张">夸张</div>
-    </div>
+    <div class="chips" id="chips"></div>
     <div id="status" class="muted"></div>
     <div id="results" class="results"></div>
 
