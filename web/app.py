@@ -6,7 +6,7 @@ import os
 from typing import Optional, List
 
 # 复用本项目的生成器
-from kaomoji_generator import generate as gen
+from kaomoji_generator import generate as gen, score_faces
 
 
 def project_root() -> str:
@@ -35,8 +35,10 @@ def api_generate(
 ):
     words: List[str] = [w for w in keywords.split() if w.strip()]
     samples_path = os.path.join(project_root(), "data", "kaomoji.json")
-    items = gen(words, n=n, seed=seed, samples_path=samples_path)
-    return JSONResponse({"keywords": words, "count": len(items), "items": items})
+    faces = gen(words, n=n, seed=seed, samples_path=samples_path)
+    scores = score_faces(faces, words)
+    items = [{"text": t, "score": int(sc)} for t, sc in zip(faces, scores)]
+    return JSONResponse({"keywords": words, "count": len(items), "items": items, "texts": faces})
 
 
 # 静态站点（单页应用）

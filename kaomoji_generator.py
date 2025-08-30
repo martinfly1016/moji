@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import random
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Tuple
 
 # 关键词到类别
 KEY2CAT = {
@@ -112,6 +112,67 @@ def is_valid_face(s: str) -> bool:
     # Require presence of typical kaomoji symbols
     symbol_hint = "()（）ʕʔ╯┻ツω益ᴥಠಥ；;TToO＿_＾^・·｡ﾟ♥♡✧ᵕᵔ"
     return any(ch in s for ch in symbol_hint)
+
+
+# 关键词相关性评分（0-100）
+FEATURES: Dict[str, List[str]] = {
+    "cat": ["ฅ", "ᆺ", "ↀ", "=^", "ﻌ", "にゃ", "ﾆｬ"],
+    "dog": ["ᴥ", "（U・", "(U･", "∪･", "ᵔᴥᵔ"],
+    "cry": ["T_T", "；；", ";;", "•̥", "꒦", "｡ﾟ", " ﾟ｡", "ಥ", "༎ຶ", "ノД", "(T"],
+    "happy": ["＾", "^_^", "ω", "ᵔ", "♪", "✧", "▽", "ヮ", "(⌒"],
+    "angry": ["益", "皿", "凸", "╬", "`д´", "ಠ益"],
+    "sleepy": ["zZ", "Zz", "｡oO", "﹏", "-_-"],
+    "shrug": ["¯\\_", "_/¯", "ツ"],
+    "tableflip": ["┻━┻", "╯︵", "╯°□°）╯"],
+    "unflip": ["┬─┬", "ノ( ゜-゜ノ)"],
+    "kiss": ["з", " 3 ", "chu"],
+    "hug": ["づ", "つ", "(づ", "(つ"],
+    "shy": ["///", "〃"],
+    "surprise": ["°□°", "ﾟдﾟ", "O_O", "o_O", "O_o", "⊙"],
+    "sweat": ["(^_^;", ";", "；"],
+    "party": ["✿", "✧", "(^o^)/", "ヽ", "♪"],
+    "bless": ["祈", "✟", "†"],
+    "think": ["(・へ・)", "(ー_ー)", "(；一_一)"],
+}
+
+
+def _match_count(s: str, needles: List[str]) -> int:
+    c = 0
+    for n in needles:
+        if n and n in s:
+            c += 1
+    return c
+
+
+def score_face(face: str, keywords: List[str]) -> int:
+    # 目标标签集合
+    labels: List[str] = []
+    for w in keywords:
+        t = KEY2CAT.get(w)
+        if t and t not in labels:
+            labels.append(t)
+    if not labels:
+        labels = [to_category_label(keywords)]
+
+    s = face
+    score = 0
+    for lab in labels:
+        feats = FEATURES.get(lab, [])
+        mc = _match_count(s, feats)
+        if mc > 0:
+            score += 60 + min(30, (mc - 1) * 10)
+    # 风格调整
+    if any(w in ("可爱", "卖萌", "萌") for w in keywords) and any(x in s for x in ["♡", "♥", "✧", "ᵕ", "ω"]):
+        score += 10
+    if any(w in ("简洁", "极简", "高冷") for w in keywords) and sum(ch in s for ch in ["♡", "♥", "✧", "♪", "彡"]) > 3:
+        score -= 10
+    # 约束范围
+    score = max(0, min(100, score))
+    return int(score)
+
+
+def score_faces(faces: List[str], keywords: List[str]) -> List[int]:
+    return [score_face(x, keywords) for x in faces]
 
 
 def bias(parts: Dict[str, List[str]], styles: List[str]) -> Dict[str, List[str]]:

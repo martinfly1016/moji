@@ -23,7 +23,10 @@ async function generate(){
   try{
     const res = await fetch(url);
     const data = await res.json();
-    render(data.items || []);
+    const items = (data.items || []).map(it => typeof it === 'string' ? ({text: it, score: undefined}) : it);
+    // 按分值排序（若存在）
+    items.sort((a,b) => (b.score||0) - (a.score||0));
+    render(items);
     setStatus(`已生成 ${data.count || 0} 个`);
   }catch(e){
     setStatus('生成失败');
@@ -37,15 +40,27 @@ function render(items){
     card.className = 'card';
     const emo = document.createElement('div');
     emo.className = 'emo';
-    emo.textContent = it;
+    emo.textContent = it.text || it;
     const btn = document.createElement('div');
     btn.className = 'copy';
     btn.textContent = '复制';
     btn.onclick = async () => {
-      try{ await navigator.clipboard.writeText(it); btn.textContent = '已复制'; setTimeout(()=>btn.textContent='复制', 1200);}catch{}
+      const text = it.text || it;
+      try{ await navigator.clipboard.writeText(text); btn.textContent = '已复制'; setTimeout(()=>btn.textContent='复制', 1200);}catch{}
     };
+    const right = document.createElement('div');
+    right.style.display = 'flex';
+    right.style.flexDirection = 'column';
+    right.style.alignItems = 'flex-end';
+    if (it.score !== undefined) {
+      const sc = document.createElement('div');
+      sc.className = 'muted';
+      sc.textContent = `相关度 ${it.score}`;
+      right.appendChild(sc);
+    }
+    right.appendChild(btn);
     card.appendChild(emo);
-    card.appendChild(btn);
+    card.appendChild(right);
     results.appendChild(card);
   });
 }
