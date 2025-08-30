@@ -24,6 +24,15 @@ def is_valid_face(s: str) -> bool:
         return False
     if "<" in s or ">" in s:
         return False
+    if "&#" in s or ";" in s and any(k in lower for k in ["td:", "hover", "queue.", "push(", ")};", "{}", "return ", "function ", "var ", "let ", "const "]):
+        return False
+    if any(ch in s for ch in "{};"):
+        return False
+    import re
+    exceptions = {"chu", "nyan", "nya", "zzz"}
+    for m in re.finditer(r"[A-Za-z]{4,}", s):
+        if m.group(0).lower() not in exceptions:
+            return False
     symbol_hint = "()（）ʕʔ╯┻ツω益ᴥಠಥ；;TToO＿_＾^・·｡ﾟ♥♡✧ᵕᵔ"
     return any(ch in s for ch in symbol_hint)
 
@@ -58,4 +67,3 @@ def main(path: str):
 
 if __name__ == "__main__":
     main(DATA)
-

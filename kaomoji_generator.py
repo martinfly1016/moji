@@ -95,8 +95,20 @@ def is_valid_face(s: str) -> bool:
     if any(tok in lower for tok in bad_tokens):
         return False
     # Raw angle brackets are suspicious; kaomoji很少用 ASCII < >
-    if "<" in s or ">" in s" :
+    if "<" in s or ">" in s:
         return False
+    # HTML entities or code-like sequences
+    if "&#" in s or ";" in s and any(k in lower for k in ["td:", "hover", "queue.", "push(", ")};", "{}", "return ", "function ", "var ", "let ", "const "]):
+        return False
+    # Curly braces or typical code punctuation
+    if any(ch in s for ch in "{};"):
+        return False
+    # Long ASCII words (looks like code), allow a few small tokens
+    import re
+    exceptions = {"chu", "nyan", "nya", "zzz"}
+    for m in re.finditer(r"[A-Za-z]{4,}", s):
+        if m.group(0).lower() not in exceptions:
+            return False
     # Require presence of typical kaomoji symbols
     symbol_hint = "()（）ʕʔ╯┻ツω益ᴥಠಥ；;TToO＿_＾^・·｡ﾟ♥♡✧ᵕᵔ"
     return any(ch in s for ch in symbol_hint)
