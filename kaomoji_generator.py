@@ -80,6 +80,28 @@ def pick(lst: List[str]):
     return random.choice(lst)
 
 
+def is_valid_face(s: str) -> bool:
+    if not s:
+        return False
+    s = s.strip()
+    if len(s) < 2 or len(s) > 60:
+        return False
+    # Reject obvious HTML/CSS/JS snippets
+    lower = s.lower()
+    bad_tokens = [
+        "<div", "</div", "<span", "</span", "<option", "</option", "class=", "style=",
+        "font-size", "px", "!important", "</", "<script", "</script", "http://", "https://",
+    ]
+    if any(tok in lower for tok in bad_tokens):
+        return False
+    # Raw angle brackets are suspicious; kaomoji很少用 ASCII < >
+    if "<" in s or ">" in s" :
+        return False
+    # Require presence of typical kaomoji symbols
+    symbol_hint = "()（）ʕʔ╯┻ツω益ᴥಠಥ；;TToO＿_＾^・·｡ﾟ♥♡✧ᵕᵔ"
+    return any(ch in s for ch in symbol_hint)
+
+
 def bias(parts: Dict[str, List[str]], styles: List[str]) -> Dict[str, List[str]]:
     out = {k: v[:] for k, v in parts.items()}
     if any(s in styles for s in ["可爱", "卖萌", "萌"]):
@@ -176,7 +198,8 @@ def load_samples(path: str) -> Dict[str, List[str]]:
         out: Dict[str, List[str]] = {}
         for cat, items in data.items():
             if isinstance(items, list):
-                out[cat] = [str(x) for x in items]
+                filtered = [str(x).strip() for x in items if is_valid_face(str(x))]
+                out[cat] = filtered
         return out
     except Exception:
         return {}
@@ -197,7 +220,8 @@ def mutate_from_sample(sample: str) -> str:
     for i, ch in enumerate(s):
         if ch in swaps and random.random() < 0.35:
             s[i] = random.choice(swaps[ch])
-    return "".join(s)
+    out = "".join(s)
+    return out if is_valid_face(out) else sample
 
 
 def generate(keywords: List[str], n: int = 6, seed: int = None, samples_path: str = "data/kaomoji.json") -> List[str]:
@@ -212,11 +236,16 @@ def generate(keywords: List[str], n: int = 6, seed: int = None, samples_path: st
     pool: List[str] = []
     # 1) 若该标签在样本里，优先基于样本生成
     if cat_label in samples and samples[cat_label]:
-        base = random.sample(samples[cat_label], min(len(samples[cat_label]), max(4, n)))
+        cand = [x for x in samples[cat_label] if is_valid_face(x)]
+        if cand:
+            base = random.sample(cand, min(len(cand), max(4, n)))
+        else:
+            base = []
         pool.extend([mutate_from_sample(b) for b in base])
     # 2) 若该标签无模板但 misc 有样本，且该标签也不在 GEN 中，则用 misc 弹性兜底
     elif cat_label not in GEN and samples.get("misc"):
-        base = random.sample(samples["misc"], min(len(samples["misc"]), max(4, n)))
+        misc_cand = [x for x in samples["misc"] if is_valid_face(x)]
+        base = random.sample(misc_cand, min(len(misc_cand), max(4, n))) if misc_cand else []
         pool.extend([mutate_from_sample(b) for b in base])
 
     # 模板补齐
