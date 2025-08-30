@@ -13,7 +13,9 @@ from kaomoji_generator import (
     score_face,
     KEY2CAT,
     load_samples,
+    is_valid_face,
 )
+from tools import import_samples as imp
 
 
 def project_root() -> str:
@@ -83,6 +85,46 @@ def api_explore(
 
     results.sort(key=lambda r: (r["count"], r["avg_score"], r["max_score"]), reverse=True)
     return JSONResponse({"total": len(results), "items": results})
+
+
+@app.get("/api/preview")
+def api_preview(
+    limit: int = Query(10, ge=1, le=50, description="每类展示的样本数"),
+    filter_bad: bool = Query(True, description="是否过滤HTML/代码等噪声"),
+):
+    root = project_root()
+    sources_file = os.path.join(root, "data", "sources.txt")
+    urls: List[str] = []
+    if os.path.isfile(sources_file):
+        with open(sources_file, "r", encoding="utf-8") as f:
+            for line in f:
+                u = line.strip()
+                if u and not u.startswith("#"):
+                    urls.append(u)
+    summary = {}
+    total = 0
+    for url in urls:
+        try:
+            txt = imp.fetch(url)
+            faces = imp.extract_faces(txt)
+            for f in faces:
+                n = imp.normalize(f)
+                if filter_bad and not is_valid_face(n):
+                    continue
+                cat = imp.categorize(n)
+                arr = summary.setdefault(cat, [])
+                if n not in arr:
+                    arr.append(n)
+                    total += 1
+        except Exception:
+            # 忽略失败的URL
+            continue
+    items = []
+    for cat, arr in summary.items():
+        examples = arr[:limit]
+        items.append({"category": cat, "count": len(arr), "examples": examples})
+    items.sort(key=lambda x: x["count"], reverse=True)
+    return JSONResponse({"total": total, "items": items})
 
 
 # 静态站点（单页应用）

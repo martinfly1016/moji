@@ -2,17 +2,33 @@
 # 你可在此追加更多来源
 
 # 典型集合（GitHub / 公开页面）；如果失败，可以替换为你信任的列表
-https://raw.githubusercontent.com/taivop/emoji-list/master/kaomoji.txt
-https://raw.githubusercontent.com/atopal/text-emoticons/master/emoticons.txt
-https://raw.githubusercontent.com/muan/emojilib/master/kaomojis.json
-https://raw.githubusercontent.com/ssut/kaomoji/master/kaomoji.txt
-https://raw.githubusercontent.com/joaochiaverini/kaomoji/master/kaomoji.txt
-https://raw.githubusercontent.com/itsjavi/kaomoji/master/kaomoji.txt
-https://raw.githubusercontent.com/iwazaru/kaomoji/master/kaomoji.json
-https://raw.githubusercontent.com/abouthiroppy/awesome-kaomoji/master/kaomoji.json
-https://raw.githubusercontent.com/guillaumearm/kaomoji/master/kaomoji.txt
+# 以下 GitHub 原始链接已失效，保留注释以备将来替换
+# https://raw.githubusercontent.com/taivop/emoji-list/master/kaomoji.txt
+# https://raw.githubusercontent.com/atopal/text-emoticons/master/emoticons.txt
+# https://raw.githubusercontent.com/muan/emojilib/master/kaomojis.json
+# https://raw.githubusercontent.com/ssut/kaomoji/master/kaomoji.txt
+# https://raw.githubusercontent.com/joaochiaverini/kaomoji/master/kaomoji.txt
+# https://raw.githubusercontent.com/itsjavi/kaomoji/master/kaomoji.txt
+# https://raw.githubusercontent.com/iwazaru/kaomoji/master/kaomoji.json
+# https://raw.githubusercontent.com/abouthiroppy/awesome-kaomoji/master/kaomoji.json
+# https://raw.githubusercontent.com/guillaumearm/kaomoji/master/kaomoji.txt
 
 # 网页（解析较脆弱，尽量放在文本/JSON之后）
-https://dongerlist.com
+# https://dongerlist.com  # 部分环境解析失败，先禁用
 https://textfac.es
 https://japaneseemoticons.me/kaomoji/
+
+# japaneseemoticons categories (more coverage)
+https://japaneseemoticons.me/kaomoji/cat-emoticons/
+https://japaneseemoticons.me/kaomoji/dog-emoticons/
+https://japaneseemoticons.me/kaomoji/crying/
+https://japaneseemoticons.me/kaomoji/happy/
+https://japaneseemoticons.me/kaomoji/angry/
+https://japaneseemoticons.me/kaomoji/sleepy/
+https://japaneseemoticons.me/kaomoji/surprised/
+https://japaneseemoticons.me/kaomoji/love/
+https://japaneseemoticons.me/kaomoji/hugging/
+https://japaneseemoticons.me/kaomoji/kissing/
+
+# kaomoji.ru
+https://kaomoji.ru/en/

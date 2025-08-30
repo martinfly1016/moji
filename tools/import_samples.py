@@ -154,6 +154,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sources", default=DEFAULT_SOURCES, help="包含URL的文本文件，一行一个")
     ap.add_argument("--out", default=DATA_PATH, help="输出JSON路径")
+    ap.add_argument("--dry", action="store_true", help="只预览：打印统计与示例，不落盘")
+    ap.add_argument("--limit", type=int, default=8, help="每类打印的示例数量")
+    ap.add_argument("--json", action="store_true", help="以JSON格式输出新增项(按类)")
     args = ap.parse_args()
 
     sources: List[str] = []
@@ -175,6 +178,7 @@ def main():
 
     seen: Set[str] = set(normalize(x) for xs in merged.values() for x in xs)
     added = 0
+    new_by_cat: Dict[str, List[str]] = {}
 
     for url in sources:
         try:
@@ -187,6 +191,7 @@ def main():
                     continue
                 cat = categorize(n)
                 merged.setdefault(cat, []).append(n)
+                new_by_cat.setdefault(cat, []).append(n)
                 seen.add(n)
                 added += 1
         except Exception as e:
@@ -196,6 +201,26 @@ def main():
     for k in merged:
         if isinstance(merged[k], list) and len(merged[k]) > 5000:
             merged[k] = merged[k][:5000]
+
+    if args.dry:
+        # 预览输出
+        total_cats = sorted(new_by_cat.keys())
+        print("Preview only (no write). New items by category:")
+        summary = []
+        for k in total_cats:
+            cnt = len(new_by_cat[k])
+            summary.append((k, cnt))
+        summary.sort(key=lambda x: x[1], reverse=True)
+        for k, cnt in summary:
+            print(f"- {k}: {cnt}")
+            sample = new_by_cat[k][: args.limit]
+            for s in sample:
+                print(f"  · {s}")
+        if args.json:
+            print("\nJSON: ")
+            print(json.dumps({k: new_by_cat[k][: args.limit] for k in summary and [x[0] for x in summary]}, ensure_ascii=False, indent=2))
+        print(f"Total new: {added}")
+        return
 
     save_json(args.out, merged)
     print(f"Done. Added {added} new faces. Output: {args.out}")

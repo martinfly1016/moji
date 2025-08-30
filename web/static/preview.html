@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>抓取预览 · 绘文字生成器</title>
+    <style>
+      body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;margin:24px}
+      h1{font-size:20px;margin:0 0 12px}
+      .muted{color:#666;font-size:12px}
+      .row{display:flex;gap:10px;align-items:center}
+      input[type=number]{width:90px;padding:6px 8px}
+      .cat{margin-top:16px}
+      .header{display:flex;justify-content:space-between;align-items:center}
+      .pill{border:1px solid #ddd;border-radius:999px;padding:2px 8px;font-size:12px}
+      .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-top:8px}
+      .card{border:1px solid #eee;border-radius:10px;padding:10px}
+      .emo{font-size:16px;word-break:break-all}
+      a{color:#06c;text-decoration:none}
+    </style>
+  </head>
+  <body>
+    <div class="row" style="justify-content:space-between;align-items:baseline">
+      <h1>抓取预览</h1>
+      <a href="/">返回生成器</a>
+    </div>
+    <div class="row">
+      <label>每类展示 <input id="limit" type="number" min="1" max="50" value="10"/></label>
+      <label><input id="filter" type="checkbox" checked> 过滤噪声</label>
+      <button id="go">抓取预览</button>
+    </div>
+    <div id="status" class="muted"></div>
+    <div id="content"></div>
+
+    <script src="/preview.js"></script>
+  </body>
+  </html>
+
