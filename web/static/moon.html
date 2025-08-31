@@ -46,6 +46,21 @@
             </div>
           </div>
 
+          <div class="split">
+            <div class="field">
+              <div class="label">目标行数 <span class="badge" id="rowsVal">12</span></div>
+              <input id="rows" type="range" min="8" max="64" step="1" value="12" />
+            </div>
+            <div class="field">
+              <div class="label">字体族</div>
+              <select id="fontFamily">
+                <option value="gothic" selected>ゴシック（Gothic）</option>
+                <option value="noto-sans">Noto Sans JP</option>
+                <option value="sans">system sans-serif</option>
+              </select>
+            </div>
+          </div>
+
           <div class="row">
             <label class="pill"><input id="bold" type="checkbox" checked /> 粗体</label>
             <label class="pill"><input id="invert" type="checkbox" /> 反色</label>

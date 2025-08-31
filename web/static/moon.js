@@ -4,7 +4,7 @@ const $ = (id)=>document.getElementById(id);
 function toGray(r,g,b){ return 0.299*r + 0.587*g + 0.114*b }
 
 // Draw input text on an offscreen canvas and return ImageData
-function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=false}={}){
+function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=false,fontFamily='gothic',targetRows=null,block=4}={}){
   const scale = 2; // render in high-res then downsample via block mapping
   const fs = fontSize*scale;
   const lh = (fontSize+line)*scale;
@@ -14,7 +14,14 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
   // rough width/height estimation
   const lines = String(text).split(/\n/);
   if(!vertical){
-    const family = "'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif";
+    let family;
+    if(fontFamily==='gothic'){
+      family = "'Yu Gothic', '游ゴシック', 'MS ゴシック', 'MS Gothic', 'Hiragino Kaku Gothic ProN', Meiryo, 'Noto Sans JP', sans-serif";
+    }else if(fontFamily==='noto-sans'){
+      family = "'Noto Sans JP', sans-serif";
+    }else{
+      family = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif";
+    }
     ctx.font = `${bold?'700':'400'} ${fs}px ${family}`;
     let maxW = 0;
     for(const lineText of lines){
@@ -34,7 +41,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
     });
   }else{
     // simple vertical layout: draw characters in a single column per line
-    const family = "'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif";
+    const family = "'Yu Gothic', '游ゴシック', 'MS ゴシック', 'MS Gothic', 'Hiragino Kaku Gothic ProN', Meiryo, 'Noto Sans JP', sans-serif";
     ctx.font = `${bold?'700':'400'} ${fs}px ${family}`;
     let cols = lines.length; // treat each input line as a column
     let maxRows = Math.max(...lines.map(s=>s.length));
@@ -50,7 +57,22 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
       }
     });
   }
-  return ctx.getImageData(0,0,canvas.width,canvas.height);
+  // 若指定目标行数，则将图像缩放到目标高度 = targetRows*block
+  let img = ctx.getImageData(0,0,canvas.width,canvas.height);
+  if(targetRows){
+    const targetH = Math.max(1, targetRows*block);
+    const targetW = Math.max(1, Math.round(canvas.width * (targetH/canvas.height)));
+    const resCanvas = document.createElement('canvas');
+    resCanvas.width = targetW; resCanvas.height = targetH;
+    const rctx = resCanvas.getContext('2d',{willReadFrequently:true});
+    rctx.imageSmoothingEnabled = true; rctx.imageSmoothingQuality='high';
+    // putImageData then drawImage
+    const tmp = document.createElement('canvas'); tmp.width=canvas.width; tmp.height=canvas.height;
+    tmp.getContext('2d').putImageData(img,0,0);
+    rctx.drawImage(tmp,0,0,targetW,targetH);
+    img = rctx.getImageData(0,0,targetW,targetH);
+  }
+  return img;
 }
 
 // Map image to moon-emoji mosaic
@@ -266,12 +288,23 @@ async function main(){
     crescentThr:$('crescentThr'),crescentVal:$('crescentVal'),
     morphR:$('morphR'),morphVal:$('morphVal'),
     fillHole:$('fillHole'),fillHoleVal:$('fillHoleVal'),
-    useDither:$('useDither')
+    useDither:$('useDither'),
+    rows:$('rows'),rowsVal:$('rowsVal'),
+    fontFamily:$('fontFamily')
   };
 
   async function generate(){
     const t0=performance.now();
-    const cfg={fontSize:parseInt(els.fontSize.value,10),bold:els.bold.checked,letter:parseInt(els.letter.value,10),line:parseInt(els.line.value,10),vertical:els.vertical.checked};
+    const cfg={
+      fontSize:parseInt(els.fontSize.value,10),
+      bold:els.bold.checked,
+      letter:parseInt(els.letter.value,10),
+      line:parseInt(els.line.value,10),
+      vertical:els.vertical.checked,
+      fontFamily:els.fontFamily.value,
+      targetRows:parseInt(els.rows.value,10)||12,
+      block:parseInt(els.block.value,10)
+    };
     const img = textToImageData(els.text.value,cfg);
     const res = imageToMoon(img,{
       block:parseInt(els.block.value,10),
@@ -341,6 +374,7 @@ async function main(){
     els.crescentVal.textContent = Number(els.crescentThr.value).toFixed(2);
     els.morphVal.textContent = els.morphR.value;
     els.fillHoleVal.textContent = els.fillHole.value;
+    els.rowsVal.textContent = els.rows.value;
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
@@ -353,6 +387,7 @@ async function main(){
     els.crescentThr.addEventListener(ev,()=>{ syncVals(); });
     els.morphR.addEventListener(ev,()=>{ syncVals(); });
     els.fillHole.addEventListener(ev,()=>{ syncVals(); });
+    els.rows.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 
