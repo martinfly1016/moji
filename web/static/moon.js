@@ -143,13 +143,16 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const c = idxGrid[y][x];
       const idx = Math.max(0, Math.min(L-1, c.idx));
       const isFill = fillMask[y][x];
-      // 如果该块位于水平笔画的上下边界（上或下是非填充），强制实心以避免左右渐变
       const adjUp = y>top ? fillMask[y-1][x] : false;
       const adjDown = y<bottom ? fillMask[y+1][x] : false;
+      // 规则1：背景直接空
+      if(idx===bgIdx){ s+='🌑'; continue; }
+      // 规则2：水平边缘（上下之一为填充、当前非填充）强制实心，避免左右半月污染
+      if(!isFill && (adjUp || adjDown)) { s+='🌕'; continue; }
+      // 规则3：内部填充且为边界（仅一侧填充）也用实心增强清晰度
       const isVerticalEdge = isFill && (!adjUp || !adjDown);
       if(isVerticalEdge){ s+='🌕'; continue; }
-      // 背景直接填充
-      if(idx===bgIdx){ s+='🌑'; continue; }
+      // 其它：按方向映射
       const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
       s += palette[idx];
     }
