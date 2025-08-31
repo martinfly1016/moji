@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>月文字生成器 · Moon Emoji Art</title>
+    <link rel="stylesheet" href="/moon.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="title">
+        <h1>月文字生成器</h1>
+        <div class="row small">
+          <a href="/" class="badge">返回首页</a>
+          <a href="/preview.html" class="badge">抓取预览</a>
+          <a href="/explore.html" class="badge">覆盖度</a>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card controls">
+          <div class="field">
+            <div class="label">输入文本</div>
+            <textarea id="text" placeholder="在这里输入文本，支持中文/日文/英文…">月文字</textarea>
+          </div>
+
+          <div class="split">
+            <div class="field">
+              <div class="label">字体大小</div>
+              <input id="fontSize" type="range" min="18" max="120" value="72" />
+            </div>
+            <div class="field">
+              <div class="label">字距</div>
+              <input id="letter" type="range" min="-10" max="30" value="0" />
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="field">
+              <div class="label">行距</div>
+              <input id="line" type="range" min="0" max="40" value="8" />
+            </div>
+            <div class="field">
+              <div class="label">块大小（像素）</div>
+              <input id="block" type="range" min="3" max="8" value="4" />
+            </div>
+          </div>
+
+          <div class="row">
+            <label class="pill"><input id="bold" type="checkbox" checked /> 粗体</label>
+            <label class="pill"><input id="invert" type="checkbox" /> 反色</label>
+            <label class="pill"><input id="vertical" type="checkbox" /> 竖排</label>
+            <label class="pill"><input id="png" type="checkbox" /> 生成预览 PNG</label>
+          </div>
+
+          <div class="sticky-bottom bar">
+            <div class="muted" id="meta">准备就绪</div>
+            <div class="right">
+              <button class="btn" id="copy">复制文本</button>
+              <button class="btn primary" id="render">生成</button>
+              <button class="btn" id="download" disabled>下载PNG</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">月文字（文本）</div>
+          <div class="preview" style="margin-bottom:12px">
+            <pre id="out" class="mono"></pre>
+          </div>
+          <div class="label">PNG 预览</div>
+          <div class="preview">
+            <canvas id="canvas" style="max-width:100%"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/moon.js"></script>
+  </body>
+  </html>
+

@@ -55,5 +55,10 @@ GitHub 仓库
 - Python 3.8+
 - 单文件 CLI：`kaomoji_generator.py`
 - 数据：`data/kaomoji.json`
- - Web：FastAPI at `web/app.py`，静态页面在 `web/static/`
+- Web：FastAPI at `web/app.py`，静态页面在 `web/static/`
+
+新增：月文字生成器（Moon Emoji Art）
+- 访问：`/moon.html`
+- 功能：输入文本→将其转为由 🌑🌒🌓🌔🌕 组成的“月文字”拼图；支持反色、竖排/横排、字距、行距；可生成 PNG 预览、复制文本。
+- 移动优先：全新 UI，适合手机端操作。
  Kaomoji Generator（绘文字生成器）
