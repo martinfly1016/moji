@@ -149,11 +149,14 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const pHere = val[y][x];
       // 规则1：背景直接空
       if(idx===bgIdx){ s+='🌑'; continue; }
-      // 规则2：水平顶部/底部边缘阈值控制
+      // 规则2：水平顶部/底部边缘阈值控制（只显示实心或不显示，绝不使用半月符号）
       const topCandidate = (!isFill && adjDown) || (isFill && !adjUp);
       const bottomCandidate = (!isFill && adjUp) || (isFill && !adjDown);
-      if(topCandidate && pHere >= topEdge){ s+='🌕'; continue; }
-      if(bottomCandidate && pHere >= bottomEdge){ s+='🌕'; continue; }
+      if(topCandidate || bottomCandidate){
+        const pass = (topCandidate && pHere >= topEdge) || (bottomCandidate && pHere >= bottomEdge);
+        s += pass ? '🌕' : '🌑';
+        continue;
+      }
       // 其它：按方向映射
       // If左侧为填充而当前非填充，强制使用“左向渐变”（亮在左、暗在右）
       const leftFill = x>left ? fillMask[y][x-1] : false;
