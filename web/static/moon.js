@@ -54,7 +54,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
@@ -146,13 +146,14 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const isFill = fillMask[y][x];
       const adjUp = y>top ? fillMask[y-1][x] : false;
       const adjDown = y<bottom ? fillMask[y+1][x] : false;
+      const pHere = val[y][x];
       // 规则1：背景直接空
       if(idx===bgIdx){ s+='🌑'; continue; }
-      // 规则2：水平边缘（上下之一为填充、当前非填充）强制实心，避免左右半月污染
-      if(!isFill && (adjUp || adjDown)) { s+='🌕'; continue; }
-      // 规则3：内部填充且为边界（仅一侧填充）也用实心增强清晰度
-      const isVerticalEdge = isFill && (!adjUp || !adjDown);
-      if(isVerticalEdge){ s+='🌕'; continue; }
+      // 规则2：水平顶部/底部边缘阈值控制
+      const topCandidate = (!isFill && adjDown) || (isFill && !adjUp);
+      const bottomCandidate = (!isFill && adjUp) || (isFill && !adjDown);
+      if(topCandidate && pHere >= topEdge){ s+='🌕'; continue; }
+      if(bottomCandidate && pHere >= bottomEdge){ s+='🌕'; continue; }
       // 其它：按方向映射
       // If左侧为填充而当前非填充，强制使用“左向渐变”（亮在左、暗在右）
       const leftFill = x>left ? fillMask[y][x-1] : false;
@@ -187,7 +188,8 @@ async function main(){
     block:$('block'),invert:$('invert'),vertical:$('vertical'),out:$('out'),meta:$('meta'),
     render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
     trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop'),
-    fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal')
+    fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal'),
+    topEdge:$('topEdge'),bottomEdge:$('bottomEdge'),topEdgeVal:$('topEdgeVal'),bottomEdgeVal:$('bottomEdgeVal')
   };
 
   async function generate(){
@@ -201,7 +203,9 @@ async function main(){
       trim:els.trim.checked,
       vFactor:parseFloat(els.vFactor.value)||1.3,
       hFactor:parseFloat(els.hFactor.value)||1.1,
-      fillTop:parseInt(els.fillTop.value,10)||2
+      fillTop:parseInt(els.fillTop.value,10)||2,
+      topEdge:parseFloat(els.topEdge.value)||0.45,
+      bottomEdge:parseFloat(els.bottomEdge.value)||0.45
     });
     els.out.textContent = res.text;
     if(els.png.checked){
@@ -226,12 +230,16 @@ async function main(){
     els.blockVal.textContent = els.block.value;
     els.letterVal.textContent = els.letter.value;
     els.lineVal.textContent = els.line.value;
+    els.topEdgeVal.textContent = Number(els.topEdge.value).toFixed(2);
+    els.bottomEdgeVal.textContent = Number(els.bottomEdge.value).toFixed(2);
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
     els.block.addEventListener(ev,()=>{ syncVals(); });
     els.letter.addEventListener(ev,()=>{ syncVals(); });
     els.line.addEventListener(ev,()=>{ syncVals(); });
+    els.topEdge.addEventListener(ev,()=>{ syncVals(); });
+    els.bottomEdge.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 
