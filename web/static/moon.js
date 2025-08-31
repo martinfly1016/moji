@@ -54,7 +54,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
@@ -137,9 +137,10 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
     while(right>=left && idxGrid.every(row=>row[right].idx===bgIdx)) right--;
     if(top>bottom || left>right){ top=0;bottom=-1;left=0;right=-1; }
   }
-  const lines=[];
+  // Build char grid first (trimmed window)
+  const newH = Math.max(0, bottom-top+1), newW = Math.max(0, right-left+1);
+  const charGrid = Array.from({length:newH},()=>Array(newW).fill('🌑'));
   for(let y=top; y<=bottom; y++){
-    let s='';
     for(let x=left; x<=right; x++){
       const c = idxGrid[y][x];
       const idx = Math.max(0, Math.min(L-1, c.idx));
@@ -148,13 +149,13 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const adjDown = y<bottom ? fillMask[y+1][x] : false;
       const pHere = val[y][x];
       // 规则1：背景直接空
-      if(idx===bgIdx){ s+='🌑'; continue; }
+      if(idx===bgIdx){ charGrid[y-top][x-left]='🌑'; continue; }
       // 规则2：水平顶部/底部边缘阈值控制（只显示实心或不显示，绝不使用半月符号）
       const topCandidate = (!isFill && adjDown) || (isFill && !adjUp);
       const bottomCandidate = (!isFill && adjUp) || (isFill && !adjDown);
       if(topCandidate || bottomCandidate){
         const pass = (topCandidate && pHere >= topEdge) || (bottomCandidate && pHere >= bottomEdge);
-        s += pass ? '🌕' : '🌑';
+        charGrid[y-top][x-left] = pass ? '🌕' : '🌑';
         continue;
       }
       // 其它：按方向映射
@@ -162,10 +163,26 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const leftFill = x>left ? fillMask[y][x-1] : false;
       let palette = (c.dir==='right')? rightPhases : (c.dir==='left')? leftPhases : neutralPhases;
       if(!isFill && leftFill) palette = leftPhases;
-      s += palette[idx];
+      charGrid[y-top][x-left] = palette[idx];
     }
-    lines.push(s);
   }
+
+  // Neighborhood filter: if displayed neighbors < filterN, hide this cell
+  if(filterN && newH>0 && newW>0){
+    const disp = charGrid.map(row=>row.map(ch=>ch!=='🌑'));
+    const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+    const out = charGrid.map(r=>r.slice());
+    for(let y=0;y<newH;y++){
+      for(let x=0;x<newW;x++){
+        if(!disp[y][x]){ out[y][x]='🌑'; continue; }
+        let cnt=0; for(const [dy,dx] of dirs){ const yy=y+dy, xx=x+dx; if(yy>=0&&yy<newH&&xx>=0&&xx<newW && disp[yy][xx]) cnt++; }
+        if(cnt < filterN){ out[y][x]='🌑'; }
+      }
+    }
+    for(let y=0;y<newH;y++) for(let x=0;x<newW;x++) charGrid[y][x]=out[y][x];
+  }
+
+  const lines = charGrid.map(r=>r.join(''));
   return {text: lines.join('\n'), lines};
 }
 
@@ -192,7 +209,8 @@ async function main(){
     render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
     trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop'),
     fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal'),
-    topEdge:$('topEdge'),bottomEdge:$('bottomEdge'),topEdgeVal:$('topEdgeVal'),bottomEdgeVal:$('bottomEdgeVal')
+    topEdge:$('topEdge'),bottomEdge:$('bottomEdge'),topEdgeVal:$('topEdgeVal'),bottomEdgeVal:$('bottomEdgeVal'),
+    filterN:$('filterN'),filterVal:$('filterVal')
   };
 
   async function generate(){
@@ -208,7 +226,8 @@ async function main(){
       hFactor:parseFloat(els.hFactor.value)||1.1,
       fillTop:parseInt(els.fillTop.value,10)||2,
       topEdge:parseFloat(els.topEdge.value)||0.45,
-      bottomEdge:parseFloat(els.bottomEdge.value)||0.45
+      bottomEdge:parseFloat(els.bottomEdge.value)||0.45,
+      filterN:parseInt(els.filterN.value,10)||0
     });
     els.out.textContent = res.text;
     if(els.png.checked){
@@ -235,6 +254,7 @@ async function main(){
     els.lineVal.textContent = els.line.value;
     els.topEdgeVal.textContent = Number(els.topEdge.value).toFixed(2);
     els.bottomEdgeVal.textContent = Number(els.bottomEdge.value).toFixed(2);
+    els.filterVal.textContent = els.filterN.value;
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
@@ -243,6 +263,7 @@ async function main(){
     els.line.addEventListener(ev,()=>{ syncVals(); });
     els.topEdge.addEventListener(ev,()=>{ syncVals(); });
     els.bottomEdge.addEventListener(ev,()=>{ syncVals(); });
+    els.filterN.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 
