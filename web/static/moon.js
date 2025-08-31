@@ -105,7 +105,15 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
       const dx = right - left; const dy = down - up;
       const magx = Math.abs(dx), magy = Math.abs(dy);
       let idx = Math.round(p*(L-1)); if(idx<0) idx=0; if(idx>L-1) idx=L-1;
-      const dir = magx>magy*1.1 ? (dx>0? 'right':'left') : 'neutral';
+      // 优先识别“上下边缘”：当垂直梯度显著时，避免使用左右渐变图案
+      let dir;
+      if(magy > magx*1.3){
+        dir = 'vertical';
+      }else if(magx > magy*1.1){
+        dir = (dx>0? 'right':'left');
+      }else{
+        dir = 'neutral';
+      }
       if(dir==='right') idxGrid[y][x] = {idx,dir};
       else if(dir==='left') idxGrid[y][x] = {idx,dir};
       else idxGrid[y][x] = {idx,dir:'neutral'};
@@ -125,9 +133,18 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
     let s='';
     for(let x=left; x<=right; x++){
       const c = idxGrid[y][x];
-      const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
       const idx = Math.max(0, Math.min(L-1, c.idx));
-      s += palette[idx];
+      if(c.dir==='vertical'){
+        // 二值填充：上下边缘用实心/背景，增强横向连贯
+        const up = y>top? idxGrid[y-1][x].idx/(L-1) : 0;
+        const down = y<bottom? idxGrid[y+1][x].idx/(L-1) : 0;
+        const pHere = val[y][x];
+        const strong = pHere>0.45 || up>0.6 || down>0.6;
+        s += strong ? '🌕' : '🌑';
+      }else{
+        const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
+        s += palette[idx];
+      }
     }
     lines.push(s);
   }
