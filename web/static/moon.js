@@ -135,9 +135,9 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
     // fill holes once
     const dirs8=[[ -1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
     for(let y=0;y<bh;y++) for(let x=0;x<bw;x++) if(!F[y][x]){ let c=0; for(const [dy,dx] of dirs8){ const yy=y+dy,xx=x+dx; if(yy>=0&&yy<bh&&xx>=0&&xx<bw&&F[yy][xx]) c++; } if(c>=6) F[y][x]=true; }
-    // Outer edge one ring
-    const dil = step(F,'dilate');
-    const E = Array.from({length:bh},(_,y)=>Array.from({length:bw},(_,x)=> dil[y][x] && !F[y][x]));
+    // Outline (one-pixel perimeter inside the glyph): E = F AND NOT erode(F,1)
+    const er1 = step(F,'erode');
+    const E = Array.from({length:bh},(_,y)=>Array.from({length:bw},(_,x)=> F[y][x] && !er1[y][x] ));
     // Trim to bounding box
     let top=0,bottom=bh-1,left=0,right=bw-1;
     const isBgRow = (row)=> row.every(v=>!v);
@@ -149,13 +149,7 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
     const charGrid = Array.from({length:H2},()=>Array(W2).fill('🌑'));
     for(let y=top;y<=bottom;y++){
       for(let x=left;x<=right;x++){
-        if(F[y][x]){ charGrid[y-top][x-left]='🌕'; continue; }
-        if(E[y][x]){
-          const leftFill = (x>0 && F[y][x-1]);
-          const rightFill = (x+1<bw && F[y][x+1]);
-          const ch = leftFill && !rightFill ? '🌗' : rightFill && !leftFill ? '🌓' : '🌗';
-          charGrid[y-top][x-left]=ch; continue;
-        }
+        if(E[y][x]){ charGrid[y-top][x-left]='🌕'; }
       }
     }
     const lines = charGrid.map(r=>r.join(''));
