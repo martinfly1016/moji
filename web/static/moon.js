@@ -54,30 +54,60 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
   const chars = ['🌑','🌒','🌓','🌔','🌕'];
-  const L = Math.min(levels, chars.length);
+  const L = Math.max(3, Math.min(levels, chars.length));
   const {width,height,data} = imageData;
-  let out = '';
-  for(let y=0;y<height;y+=block){
-    for(let x=0;x<width;x+=block){
+  const bw = Math.ceil(width/block), bh = Math.ceil(height/block);
+  // 1) compute block grayscale (0..L-1 float space)
+  const grid = Array.from({length:bh},()=>Array(bw).fill(0));
+  for(let by=0; by<bh; by++){
+    for(let bx=0; bx<bw; bx++){
       let acc=0,cnt=0;
       for(let j=0;j<block;j++){
         for(let i=0;i<block;i++){
-          if(x+i<width && y+j<height){
-            const p=((y+j)*width + (x+i))*4; acc+=toGray(data[p],data[p+1],data[p+2]); cnt++;
-          }
+          const x=bx*block+i, y=by*block+j;
+          if(x<width && y<height){ const p=(y*width+x)*4; acc+=toGray(data[p],data[p+1],data[p+2]); cnt++; }
         }
       }
-      const g = acc/cnt; // 0..255
-      let idx = Math.floor(g/256*L);
-      if(idx>=L) idx=L-1; if(idx<0) idx=0;
-      if(invert) idx = L-1-idx;
-      out += chars[idx];
+      const g = cnt?acc/cnt:0; // 0..255
+      grid[by][bx] = (g/255)*(L-1); // map to 0..L-1 float
     }
-    if(y+block<height) out+='\n';
   }
-  return out;
+  // 2) Floyd–Steinberg dithering on block grid for smoother edges
+  for(let y=0;y<bh;y++){
+    for(let x=0;x<bw;x++){
+      const old = grid[y][x];
+      const newV = Math.round(old);
+      const err = old - newV;
+      grid[y][x] = newV;
+      if(x+1<bw) grid[y][x+1] += err*7/16;
+      if(y+1<bh && x>0) grid[y+1][x-1] += err*3/16;
+      if(y+1<bh) grid[y+1][x] += err*5/16;
+      if(y+1<bh && x+1<bw) grid[y+1][x+1] += err*1/16;
+    }
+  }
+  // 3) map to emoji index and optionally trim background edge
+  const bgIdx = invert ? (L-1) : 0;
+  const idxGrid = grid.map(row=>row.map(v=>{
+    let idx = Math.max(0, Math.min(L-1, Math.round(v)));
+    return invert? (L-1-idx) : idx;
+  }));
+  let top=0,bottom=bh-1,left=0,right=bw-1;
+  if(trim){
+    while(top<=bottom && idxGrid[top].every(x=>x===bgIdx)) top++;
+    while(bottom>=top && idxGrid[bottom].every(x=>x===bgIdx)) bottom--;
+    while(left<=right && idxGrid.every(row=>row[left]===bgIdx)) left++;
+    while(right>=left && idxGrid.every(row=>row[right]===bgIdx)) right--;
+    if(top>bottom || left>right){ top=0;bottom=-1;left=0;right=-1; }
+  }
+  const lines=[];
+  for(let y=top; y<=bottom; y++){
+    let s='';
+    for(let x=left; x<=right; x++) s+=chars[idxGrid[y][x]];
+    lines.push(s);
+  }
+  return {text: lines.join('\n'), lines};
 }
 
 // Draw moon text back into a PNG for preview
@@ -100,23 +130,24 @@ async function main(){
   const els={
     text:$('text'),fontSize:$('fontSize'),bold:$('bold'),letter:$('letter'),line:$('line'),
     block:$('block'),invert:$('invert'),vertical:$('vertical'),out:$('out'),meta:$('meta'),
-    render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas')
+    render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
+    trim:$('trim'),levels:$('levels')
   };
 
   async function generate(){
     const t0=performance.now();
     const cfg={fontSize:parseInt(els.fontSize.value,10),bold:els.bold.checked,letter:parseInt(els.letter.value,10),line:parseInt(els.line.value,10),vertical:els.vertical.checked};
     const img = textToImageData(els.text.value,cfg);
-    const moon = imageToMoon(img,{block:parseInt(els.block.value,10),invert:els.invert.checked,levels:5});
-    els.out.textContent = moon;
+    const res = imageToMoon(img,{block:parseInt(els.block.value,10),invert:els.invert.checked,levels:parseInt(els.levels.value,10)||5,trim:els.trim.checked});
+    els.out.textContent = res.text;
     if(els.png.checked){
-      renderMoonToCanvas(moon, els.canvas);
+      renderMoonToCanvas(res.text, els.canvas);
       els.download.disabled=false;
     } else {
       els.canvas.width = 1; els.canvas.height = 1; els.download.disabled=true;
     }
     const ms=Math.round(performance.now()-t0);
-    els.meta.textContent = `字符 ${els.text.value.length} · 输出 ${moon.split('\n').length} 行 · ${ms}ms`;
+    els.meta.textContent = `字符 ${els.text.value.length} · 输出 ${res.lines.length} 行 · ${ms}ms`;
   }
 
   $('download').addEventListener('click',()=>{
@@ -130,4 +161,3 @@ async function main(){
 }
 
 main();
-
