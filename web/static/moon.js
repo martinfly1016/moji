@@ -54,7 +54,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
@@ -107,9 +107,9 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
       let idx = Math.round(p*(L-1)); if(idx<0) idx=0; if(idx>L-1) idx=L-1;
       // 优先识别“上下边缘”：当垂直梯度显著时，避免使用左右渐变图案
       let dir;
-      if(magy > magx*1.3){
+      if(magy > magx*vFactor){
         dir = 'vertical';
-      }else if(magx > magy*1.1){
+      }else if(magx > magy*hFactor){
         dir = (dx>0? 'right':'left');
       }else{
         dir = 'neutral';
@@ -123,7 +123,8 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
   const fillMask = Array.from({length:bh},()=>Array(bw).fill(false));
   for(let y=0;y<bh;y++){
     for(let x=0;x<bw;x++){
-      fillMask[y][x] = idxGrid[y][x].idx >= Math.max(1, L-2);
+      const topLevels = Math.max(1, Math.min(fillTop, L-1));
+      fillMask[y][x] = idxGrid[y][x].idx >= (L - topLevels);
     }
   }
   let top=0,bottom=bh-1,left=0,right=bw-1;
@@ -178,14 +179,22 @@ async function main(){
     text:$('text'),fontSize:$('fontSize'),bold:$('bold'),letter:$('letter'),line:$('line'),
     block:$('block'),invert:$('invert'),vertical:$('vertical'),out:$('out'),meta:$('meta'),
     render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
-    trim:$('trim'),levels:$('levels')
+    trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop')
   };
 
   async function generate(){
     const t0=performance.now();
     const cfg={fontSize:parseInt(els.fontSize.value,10),bold:els.bold.checked,letter:parseInt(els.letter.value,10),line:parseInt(els.line.value,10),vertical:els.vertical.checked};
     const img = textToImageData(els.text.value,cfg);
-    const res = imageToMoon(img,{block:parseInt(els.block.value,10),invert:els.invert.checked,levels:parseInt(els.levels.value,10)||5,trim:els.trim.checked});
+    const res = imageToMoon(img,{
+      block:parseInt(els.block.value,10),
+      invert:els.invert.checked,
+      levels:parseInt(els.levels.value,10)||5,
+      trim:els.trim.checked,
+      vFactor:parseFloat(els.vFactor.value)||1.3,
+      hFactor:parseFloat(els.hFactor.value)||1.1,
+      fillTop:parseInt(els.fillTop.value,10)||2
+    });
     els.out.textContent = res.text;
     if(els.png.checked){
       renderMoonToCanvas(res.text, els.canvas);
