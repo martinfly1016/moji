@@ -167,7 +167,7 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
   for(let y=top; y<=bottom; y++){
     for(let x=left; x<=right; x++){
       const c = idxGrid[y][x];
-      const idx = Math.max(0, Math.min(L-1, c.idx));
+      let idx = Math.max(0, Math.min(L-1, c.idx));
       const isFill = fillMask[y][x];
       const adjUp = y>top ? fillMask[y-1][x] : false;
       const adjDown = y<bottom ? fillMask[y+1][x] : false;
