@@ -99,9 +99,9 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
   for(let y=0;y<bh;y++){
     for(let x=0;x<bw;x++){
       const p = Math.max(0, Math.min(1, val[y][x]));
-      // gradient (brightness increases toward inside stroke)
-      const left = x>0? val[y][x-1]:p, right = x+1<bw? val[y][x+1]:p;
-      const up = y>0? val[y-1][x]:p, down = y+1<bh? val[y+1][x]:p;
+      // Use pre-dither grid for orientation to avoid noise flips
+      const left = x>0? grid[y][x-1]:p, right = x+1<bw? grid[y][x+1]:p;
+      const up = y>0? grid[y-1][x]:p, down = y+1<bh? grid[y+1][x]:p;
       const dx = right - left; const dy = down - up;
       const magx = Math.abs(dx), magy = Math.abs(dy);
       let idx = Math.round(p*(L-1)); if(idx<0) idx=0; if(idx>L-1) idx=L-1;
@@ -114,6 +114,7 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       }else{
         dir = 'neutral';
       }
+      // prefer left orientation if left cell is significantly brighter (stroke on left)
       if(dir==='right') idxGrid[y][x] = {idx,dir};
       else if(dir==='left') idxGrid[y][x] = {idx,dir};
       else idxGrid[y][x] = {idx,dir:'neutral'};
@@ -153,7 +154,10 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       const isVerticalEdge = isFill && (!adjUp || !adjDown);
       if(isVerticalEdge){ s+='🌕'; continue; }
       // 其它：按方向映射
-      const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
+      // If左侧为填充而当前非填充，强制使用“左向渐变”（亮在左、暗在右）
+      const leftFill = x>left ? fillMask[y][x-1] : false;
+      let palette = (c.dir==='right')? rightPhases : (c.dir==='left')? leftPhases : neutralPhases;
+      if(!isFill && leftFill) palette = leftPhases;
       s += palette[idx];
     }
     lines.push(s);
