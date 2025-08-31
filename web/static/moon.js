@@ -54,7 +54,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0,crescentThr=0.25}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
@@ -176,6 +176,8 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       else if(leftFill && !rightFill) palette = leftPhases;
       else if(rightFill && !leftFill) palette = rightPhases;
       else palette = (c.dir==='right')? rightPhases : (c.dir==='left')? leftPhases : neutralPhases;
+      // 仅极弱亮度时允许使用“弦月”（索引1）；否则提升为半月（索引2）
+      if(idx===1 && pHere > crescentThr) idx = 2;
       charGrid[y-top][x-left] = palette[idx];
     }
   }
@@ -223,7 +225,8 @@ async function main(){
     trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop'),
     fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal'),
     topEdge:$('topEdge'),bottomEdge:$('bottomEdge'),topEdgeVal:$('topEdgeVal'),bottomEdgeVal:$('bottomEdgeVal'),
-    filterN:$('filterN'),filterVal:$('filterVal')
+    filterN:$('filterN'),filterVal:$('filterVal'),
+    crescentThr:$('crescentThr'),crescentVal:$('crescentVal')
   };
 
   async function generate(){
@@ -240,7 +243,8 @@ async function main(){
       fillTop:parseInt(els.fillTop.value,10)||2,
       topEdge:parseFloat(els.topEdge.value)||0.45,
       bottomEdge:parseFloat(els.bottomEdge.value)||0.45,
-      filterN:parseInt(els.filterN.value,10)||0
+      filterN:parseInt(els.filterN.value,10)||0,
+      crescentThr:parseFloat(els.crescentThr.value)||0.25
     });
     els.out.textContent = res.text;
     if(els.png.checked){
@@ -268,6 +272,7 @@ async function main(){
     els.topEdgeVal.textContent = Number(els.topEdge.value).toFixed(2);
     els.bottomEdgeVal.textContent = Number(els.bottomEdge.value).toFixed(2);
     els.filterVal.textContent = els.filterN.value;
+    els.crescentVal.textContent = Number(els.crescentThr.value).toFixed(2);
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
@@ -277,6 +282,7 @@ async function main(){
     els.topEdge.addEventListener(ev,()=>{ syncVals(); });
     els.bottomEdge.addEventListener(ev,()=>{ syncVals(); });
     els.filterN.addEventListener(ev,()=>{ syncVals(); });
+    els.crescentThr.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 
