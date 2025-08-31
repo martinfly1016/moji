@@ -306,6 +306,29 @@ async function main(){
   $('copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(els.out.textContent||''); $('copy').textContent='已复制'; setTimeout(()=>$('copy').textContent='复制文本',1200);}catch{} });
   $('render').addEventListener('click',generate);
 
+  // 一键预设：参考风格A（内部实心+外缘一圈、少量半月、平滑）
+  $('preset').addEventListener('click',()=>{
+    els.fontSize.value = 72;
+    els.letter.value = 0;
+    els.line.value = 10;
+    els.block.value = 4;
+    els.levels.value = 6;
+    els.trim.checked = true;
+    els.vertical.checked = false;
+    els.vFactor.value = 1.40;
+    els.hFactor.value = 1.20;
+    els.fillTop.value = 3;
+    els.topEdge.value = 0.50;
+    els.bottomEdge.value = 0.50;
+    els.filterN.value = 4;
+    els.crescentThr.value = 0.22;
+    els.morphR.value = 2;
+    els.fillHole.value = 6;
+    els.useDither.checked = false;
+    syncVals();
+    generate();
+  });
+
   // live display for sliders
   const syncVals=()=>{
     els.fontSizeVal.textContent = els.fontSize.value;
