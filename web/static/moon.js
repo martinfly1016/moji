@@ -186,7 +186,8 @@ async function main(){
     text:$('text'),fontSize:$('fontSize'),bold:$('bold'),letter:$('letter'),line:$('line'),
     block:$('block'),invert:$('invert'),vertical:$('vertical'),out:$('out'),meta:$('meta'),
     render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
-    trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop')
+    trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop'),
+    fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal')
   };
 
   async function generate(){
@@ -218,6 +219,17 @@ async function main(){
   });
   $('copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(els.out.textContent||''); $('copy').textContent='已复制'; setTimeout(()=>$('copy').textContent='复制文本',1200);}catch{} });
   $('render').addEventListener('click',generate);
+
+  // live display for sliders
+  const syncVals=()=>{
+    els.fontSizeVal.textContent = els.fontSize.value;
+    els.blockVal.textContent = els.block.value;
+  };
+  ['input','change'].forEach(ev=>{
+    els.fontSize.addEventListener(ev,()=>{ syncVals(); });
+    els.block.addEventListener(ev,()=>{ syncVals(); });
+  });
+  syncVals();
 
   // Auto-generate on first load
   generate();
