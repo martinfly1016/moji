@@ -76,14 +76,14 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0,crescentThr=0.25,morphR=1,fillHole=5,useDither=false}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0,crescentThr=0.25,morphR=1,fillHole=5,useDither=false,auto=false}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
   const L = Math.max(3, Math.min(levels, rightPhases.length));
   const {width,height,data} = imageData;
   const bw = Math.ceil(width/block), bh = Math.ceil(height/block);
-  // 1) compute normalized grayscale 0..1 per block
+  // 1) compute normalized grayscale 0..1 per block（中心加权）
   const grid = Array.from({length:bh},()=>Array(bw).fill(0));
   for(let by=0; by<bh; by++){
     for(let bx=0; bx<bw; bx++){
@@ -99,6 +99,67 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       if(invert) g = 1-g; // ensure“亮=笔画”
       grid[by][bx] = g;
     }
+  }
+
+  // Auto pipeline: derive solid fill mask by Otsu + closing, then single-pixel edge and simple mapping
+  if(auto){
+    // Otsu threshold on grid values
+    const hist = new Array(256).fill(0);
+    for(let y=0;y<bh;y++) for(let x=0;x<bw;x++) hist[Math.max(0,Math.min(255,Math.round(grid[y][x]*255)))]++;
+    let sum=0; for(let t=0;t<256;t++) sum += t*hist[t];
+    let sumB=0,wB=0,maxVar=0,thr=127,wF=0;
+    const total = bw*bh;
+    for(let t=0;t<256;t++){
+      wB += hist[t]; if(!wB) continue; wF = total - wB; if(!wF) break;
+      sumB += t*hist[t]; const mB = sumB/wB, mF = (sum - sumB)/wF; const between = wB*wF*(mB-mF)*(mB-mF);
+      if(between>maxVar){ maxVar=between; thr=t; }
+    }
+    const T = thr/255;
+    // initial fill mask
+    let F = Array.from({length:bh},(_,y)=>Array.from({length:bw},(_,x)=> grid[y][x] >= T));
+    // closing radius 2
+    const H=bh,W=bw; const dirs=[[ -1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
+    const step = (src, op)=>{
+      const dst=Array.from({length:H},()=>Array(W).fill(false));
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+        let v = op==='dilate'?false:true;
+        for(const [dy,dx] of dirs){
+          const yy=y+dy, xx=x+dx; if(yy>=0&&yy<H&&xx>=0&&xx<W){ v = (op==='dilate')? (v||src[yy][xx]) : (v&&src[yy][xx]); }
+        }
+        dst[y][x]=v;
+      }
+      return dst;
+    };
+    for(let i=0;i<2;i++) F=step(F,'dilate');
+    for(let i=0;i<2;i++) F=step(F,'erode');
+    // fill holes once
+    const dirs8=[[ -1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+    for(let y=0;y<bh;y++) for(let x=0;x<bw;x++) if(!F[y][x]){ let c=0; for(const [dy,dx] of dirs8){ const yy=y+dy,xx=x+dx; if(yy>=0&&yy<bh&&xx>=0&&xx<bw&&F[yy][xx]) c++; } if(c>=6) F[y][x]=true; }
+    // Outer edge one ring
+    const dil = step(F,'dilate');
+    const E = Array.from({length:bh},(_,y)=>Array.from({length:bw},(_,x)=> dil[y][x] && !F[y][x]));
+    // Trim to bounding box
+    let top=0,bottom=bh-1,left=0,right=bw-1;
+    const isBgRow = (row)=> row.every(v=>!v);
+    while(top<=bottom && isBgRow(F[top]) && isBgRow(E[top])) top++;
+    while(bottom>=top && isBgRow(F[bottom]) && isBgRow(E[bottom])) bottom--;
+    while(left<=right && F.every(r=>!r[left]) && E.every(r=>!r[left])) left++;
+    while(right>=left && F.every(r=>!r[right]) && E.every(r=>!r[right])) right--;
+    const H2=Math.max(0,bottom-top+1), W2=Math.max(0,right-left+1);
+    const charGrid = Array.from({length:H2},()=>Array(W2).fill('🌑'));
+    for(let y=top;y<=bottom;y++){
+      for(let x=left;x<=right;x++){
+        if(F[y][x]){ charGrid[y-top][x-left]='🌕'; continue; }
+        if(E[y][x]){
+          const leftFill = (x>0 && F[y][x-1]);
+          const rightFill = (x+1<bw && F[y][x+1]);
+          const ch = leftFill && !rightFill ? '🌗' : rightFill && !leftFill ? '🌓' : '🌗';
+          charGrid[y-top][x-left]=ch; continue;
+        }
+      }
+    }
+    const lines = charGrid.map(r=>r.join(''));
+    return {text: lines.join('\n'), lines};
   }
   // 2) 可选抖动（文本模式建议关闭）
   const val = grid.map(r=>r.slice());
