@@ -55,11 +55,13 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 
 // Map image to moon-emoji mosaic
 function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
-  const chars = ['🌑','🌒','🌓','🌔','🌕'];
-  const L = Math.max(3, Math.min(levels, chars.length));
+  const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
+  const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
+  const neutralPhases = rightPhases;
+  const L = Math.max(3, Math.min(levels, rightPhases.length));
   const {width,height,data} = imageData;
   const bw = Math.ceil(width/block), bh = Math.ceil(height/block);
-  // 1) compute block grayscale (0..L-1 float space)
+  // 1) compute normalized grayscale 0..1 per block
   const grid = Array.from({length:bh},()=>Array(bw).fill(0));
   for(let by=0; by<bh; by++){
     for(let bx=0; bx<bw; bx++){
@@ -70,41 +72,63 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
           if(x<width && y<height){ const p=(y*width+x)*4; acc+=toGray(data[p],data[p+1],data[p+2]); cnt++; }
         }
       }
-      const g = cnt?acc/cnt:0; // 0..255
-      grid[by][bx] = (g/255)*(L-1); // map to 0..L-1 float
+      let g = cnt?acc/cnt:0; // 0..255
+      g = g/255; // 0..1, higher=brighter
+      if(invert) g = 1-g; // ensure“亮=笔画”
+      grid[by][bx] = g;
     }
   }
-  // 2) Floyd–Steinberg dithering on block grid for smoother edges
+  // 2) gradient-based orientation for edges + optional dithering for banding
+  // apply light FS dithering on value before quantize to improve continuity
+  const val = grid.map(r=>r.slice());
   for(let y=0;y<bh;y++){
     for(let x=0;x<bw;x++){
-      const old = grid[y][x];
-      const newV = Math.round(old);
+      const old = val[y][x];
+      const newV = Math.round(old*(L-1))/(L-1);
       const err = old - newV;
-      grid[y][x] = newV;
-      if(x+1<bw) grid[y][x+1] += err*7/16;
-      if(y+1<bh && x>0) grid[y+1][x-1] += err*3/16;
-      if(y+1<bh) grid[y+1][x] += err*5/16;
-      if(y+1<bh && x+1<bw) grid[y+1][x+1] += err*1/16;
+      val[y][x] = newV;
+      if(x+1<bw) val[y][x+1] += err*7/16;
+      if(y+1<bh && x>0) val[y+1][x-1] += err*3/16;
+      if(y+1<bh) val[y+1][x] += err*5/16;
+      if(y+1<bh && x+1<bw) val[y+1][x+1] += err*1/16;
     }
   }
-  // 3) map to emoji index and optionally trim background edge
-  const bgIdx = invert ? (L-1) : 0;
-  const idxGrid = grid.map(row=>row.map(v=>{
-    let idx = Math.max(0, Math.min(L-1, Math.round(v)));
-    return invert? (L-1-idx) : idx;
-  }));
+  // 3) choose symbol per cell with orientation-aware palette
+  const idxGrid = Array.from({length:bh},()=>Array(bw).fill(0));
+  const bgIdx = 0; // after invert, 0 means background new moon
+  for(let y=0;y<bh;y++){
+    for(let x=0;x<bw;x++){
+      const p = Math.max(0, Math.min(1, val[y][x]));
+      // gradient (brightness increases toward inside stroke)
+      const left = x>0? val[y][x-1]:p, right = x+1<bw? val[y][x+1]:p;
+      const up = y>0? val[y-1][x]:p, down = y+1<bh? val[y+1][x]:p;
+      const dx = right - left; const dy = down - up;
+      const magx = Math.abs(dx), magy = Math.abs(dy);
+      let idx = Math.round(p*(L-1)); if(idx<0) idx=0; if(idx>L-1) idx=L-1;
+      const dir = magx>magy*1.1 ? (dx>0? 'right':'left') : 'neutral';
+      if(dir==='right') idxGrid[y][x] = {idx,dir};
+      else if(dir==='left') idxGrid[y][x] = {idx,dir};
+      else idxGrid[y][x] = {idx,dir:'neutral'};
+    }
+  }
   let top=0,bottom=bh-1,left=0,right=bw-1;
   if(trim){
-    while(top<=bottom && idxGrid[top].every(x=>x===bgIdx)) top++;
-    while(bottom>=top && idxGrid[bottom].every(x=>x===bgIdx)) bottom--;
-    while(left<=right && idxGrid.every(row=>row[left]===bgIdx)) left++;
-    while(right>=left && idxGrid.every(row=>row[right]===bgIdx)) right--;
+    const isBgRow = (row)=> row.every(c=>c.idx===bgIdx);
+    while(top<=bottom && isBgRow(idxGrid[top])) top++;
+    while(bottom>=top && isBgRow(idxGrid[bottom])) bottom--;
+    while(left<=right && idxGrid.every(row=>row[left].idx===bgIdx)) left++;
+    while(right>=left && idxGrid.every(row=>row[right].idx===bgIdx)) right--;
     if(top>bottom || left>right){ top=0;bottom=-1;left=0;right=-1; }
   }
   const lines=[];
   for(let y=top; y<=bottom; y++){
     let s='';
-    for(let x=left; x<=right; x++) s+=chars[idxGrid[y][x]];
+    for(let x=left; x<=right; x++){
+      const c = idxGrid[y][x];
+      const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
+      const idx = Math.max(0, Math.min(L-1, c.idx));
+      s += palette[idx];
+    }
     lines.push(s);
   }
   return {text: lines.join('\n'), lines};
