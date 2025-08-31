@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import urllib.request
+import html as htmllib
 from typing import Dict, List, Set
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -75,12 +76,12 @@ def extract_faces(text: str) -> List[str]:
 
     # Fallback: by lines
     for line in text.splitlines():
-        s = line.strip()
+        s = htmllib.unescape(re.sub(r"<.*?>", "", line)).strip()
         if is_face_like(s):
             faces.add(s)
-    # HTML fallback: grab content inside <code> or <li>
-    for m in re.finditer(r"<(code|li)[^>]*>(.*?)</\\1>", text, flags=re.S | re.I):
-        cand = re.sub(r"<.*?>", "", m.group(2)).strip()
+    # HTML fallback: broader tag support (span/td/code/li)
+    for m in re.finditer(r"<(span|td|code|li)[^>]*>(.*?)</\\1>", text, flags=re.S | re.I):
+        cand = htmllib.unescape(re.sub(r"<.*?>", "", m.group(2))).strip()
         if is_face_like(cand):
             faces.add(cand)
     return list(faces)

@@ -25,6 +25,13 @@ Kaomoji Generator（绘文字生成器）
   - 类别：`猫 / 犬 / 泣く / 嬉しい / 怒る / 眠い`
   - 风格：`かわいい / シンプル / 派手`
 
+部署到 Vercel（Serverless）
+- 在 Vercel 项目设置中将 Root Directory 置为 `moji/`。
+- 代码已包含 `vercel.json` 与 `api/index.py`：
+  - `api/index.py` 暴露 FastAPI `app`；
+  - `vercel.json` 将静态资源与数据文件打包到函数，并将所有路由指向该函数；
+- 关联 GitHub 后，推送到 `main` 将自动部署；部署完成后直接访问站点根路径即可。
+
 数据扩展
 - 在 `data/kaomoji.json` 里按类别新增样例；生成器会优先以样例做“基模板+轻改”。
 - 推荐的公开样本来源（人工确认后再导入）：
