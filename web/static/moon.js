@@ -187,7 +187,7 @@ async function main(){
     block:$('block'),invert:$('invert'),vertical:$('vertical'),out:$('out'),meta:$('meta'),
     render:$('render'),copy:$('copy'),png:$('png'),download:$('download'),canvas:$('canvas'),
     trim:$('trim'),levels:$('levels'),vFactor:$('vFactor'),hFactor:$('hFactor'),fillTop:$('fillTop'),
-    fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal')
+    fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal')
   };
 
   async function generate(){
@@ -224,10 +224,14 @@ async function main(){
   const syncVals=()=>{
     els.fontSizeVal.textContent = els.fontSize.value;
     els.blockVal.textContent = els.block.value;
+    els.letterVal.textContent = els.letter.value;
+    els.lineVal.textContent = els.line.value;
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
     els.block.addEventListener(ev,()=>{ syncVals(); });
+    els.letter.addEventListener(ev,()=>{ syncVals(); });
+    els.line.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 
