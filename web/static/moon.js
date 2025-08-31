@@ -119,6 +119,13 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
       else idxGrid[y][x] = {idx,dir:'neutral'};
     }
   }
+  // Compute a strong-fill mask (top 2 levels) for clean horizontal edges
+  const fillMask = Array.from({length:bh},()=>Array(bw).fill(false));
+  for(let y=0;y<bh;y++){
+    for(let x=0;x<bw;x++){
+      fillMask[y][x] = idxGrid[y][x].idx >= Math.max(1, L-2);
+    }
+  }
   let top=0,bottom=bh-1,left=0,right=bw-1;
   if(trim){
     const isBgRow = (row)=> row.every(c=>c.idx===bgIdx);
@@ -134,17 +141,16 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true}={}){
     for(let x=left; x<=right; x++){
       const c = idxGrid[y][x];
       const idx = Math.max(0, Math.min(L-1, c.idx));
-      if(c.dir==='vertical'){
-        // 二值填充：上下边缘用实心/背景，增强横向连贯
-        const up = y>top? idxGrid[y-1][x].idx/(L-1) : 0;
-        const down = y<bottom? idxGrid[y+1][x].idx/(L-1) : 0;
-        const pHere = val[y][x];
-        const strong = pHere>0.45 || up>0.6 || down>0.6;
-        s += strong ? '🌕' : '🌑';
-      }else{
-        const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
-        s += palette[idx];
-      }
+      const isFill = fillMask[y][x];
+      // 如果该块位于水平笔画的上下边界（上或下是非填充），强制实心以避免左右渐变
+      const adjUp = y>top ? fillMask[y-1][x] : false;
+      const adjDown = y<bottom ? fillMask[y+1][x] : false;
+      const isVerticalEdge = isFill && (!adjUp || !adjDown);
+      if(isVerticalEdge){ s+='🌕'; continue; }
+      // 背景直接填充
+      if(idx===bgIdx){ s+='🌑'; continue; }
+      const palette = c.dir==='right'? rightPhases : c.dir==='left'? leftPhases : neutralPhases;
+      s += palette[idx];
     }
     lines.push(s);
   }
