@@ -54,7 +54,7 @@ function textToImageData(text,{fontSize=72,bold=true,letter=0,line=8,vertical=fa
 }
 
 // Map image to moon-emoji mosaic
-function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0,crescentThr=0.25}={}){
+function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=1.30,hFactor=1.10,fillTop=2,topEdge=0.45,bottomEdge=0.45,filterN=0,crescentThr=0.25,morphR=1,fillHole=5,useDither=false}={}){
   const rightPhases = ['🌑','🌒','🌓','🌔','🌕'];
   const leftPhases  = ['🌑','🌘','🌗','🌖','🌕'];
   const neutralPhases = rightPhases;
@@ -78,19 +78,20 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       grid[by][bx] = g;
     }
   }
-  // 2) gradient-based orientation for edges + optional dithering for banding
-  // apply light FS dithering on value before quantize to improve continuity
+  // 2) 可选抖动（文本模式建议关闭）
   const val = grid.map(r=>r.slice());
-  for(let y=0;y<bh;y++){
-    for(let x=0;x<bw;x++){
-      const old = val[y][x];
-      const newV = Math.round(old*(L-1))/(L-1);
-      const err = old - newV;
-      val[y][x] = newV;
-      if(x+1<bw) val[y][x+1] += err*7/16;
-      if(y+1<bh && x>0) val[y+1][x-1] += err*3/16;
-      if(y+1<bh) val[y+1][x] += err*5/16;
-      if(y+1<bh && x+1<bw) val[y+1][x+1] += err*1/16;
+  if(useDither){
+    for(let y=0;y<bh;y++){
+      for(let x=0;x<bw;x++){
+        const old = val[y][x];
+        const newV = Math.round(old*(L-1))/(L-1);
+        const err = old - newV;
+        val[y][x] = newV;
+        if(x+1<bw) val[y][x+1] += err*7/16;
+        if(y+1<bh && x>0) val[y+1][x-1] += err*3/16;
+        if(y+1<bh) val[y+1][x] += err*5/16;
+        if(y+1<bh && x+1<bw) val[y+1][x+1] += err*1/16;
+      }
     }
   }
   // 3) choose symbol per cell with orientation-aware palette
@@ -120,13 +121,36 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
       else idxGrid[y][x] = {idx,dir:'neutral'};
     }
   }
-  // Compute a strong-fill mask (top 2 levels) for clean horizontal edges
-  const fillMask = Array.from({length:bh},()=>Array(bw).fill(false));
+  // Compute a strong-fill mask (top N levels) for clean edges
+  let fillMask = Array.from({length:bh},()=>Array(bw).fill(false));
   for(let y=0;y<bh;y++){
     for(let x=0;x<bw;x++){
       const topLevels = Math.max(1, Math.min(fillTop, L-1));
       fillMask[y][x] = idxGrid[y][x].idx >= (L - topLevels);
     }
+  }
+  // 形态学 closing: dilate->erode with radius morphR (0/1/2)
+  if(morphR>0){
+    const H=bh,W=bw; const dirs=[[ -1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
+    const step = (src, op)=>{
+      const dst=Array.from({length:H},()=>Array(W).fill(false));
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+        let v = op==='dilate'?false:true;
+        for(const [dy,dx] of dirs){
+          const yy=y+dy, xx=x+dx;
+          if(yy>=0&&yy<H&&xx>=0&&xx<W){
+            if(op==='dilate') v = v || src[yy][xx];
+            else v = v && src[yy][xx];
+          }
+        }
+        dst[y][x]=v;
+      }
+      return dst;
+    };
+    let tmp = fillMask;
+    for(let i=0;i<morphR;i++) tmp = step(tmp,'dilate');
+    for(let i=0;i<morphR;i++) tmp = step(tmp,'erode');
+    fillMask = tmp;
   }
   let top=0,bottom=bh-1,left=0,right=bw-1;
   if(trim){
@@ -197,6 +221,19 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
     for(let y=0;y<newH;y++) for(let x=0;x<newW;x++) charGrid[y][x]=out[y][x];
   }
 
+  // 填洞：若空点的8邻可见数>=fillHole，则置为实心
+  if(fillHole && newH>0 && newW>0){
+    const disp = charGrid.map(row=>row.map(ch=>ch!=='🌑'));
+    const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+    for(let y=0;y<newH;y++){
+      for(let x=0;x<newW;x++){
+        if(disp[y][x]) continue;
+        let cnt=0; for(const [dy,dx] of dirs){ const yy=y+dy, xx=x+dx; if(yy>=0&&yy<newH&&xx>=0&&xx<newW && disp[yy][xx]) cnt++; }
+        if(cnt>=fillHole){ charGrid[y][x]='🌕'; disp[y][x]=true; }
+      }
+    }
+  }
+
   const lines = charGrid.map(r=>r.join(''));
   return {text: lines.join('\n'), lines};
 }
@@ -226,7 +263,10 @@ async function main(){
     fontSizeVal:$('fontSizeVal'),blockVal:$('blockVal'),letterVal:$('letterVal'),lineVal:$('lineVal'),
     topEdge:$('topEdge'),bottomEdge:$('bottomEdge'),topEdgeVal:$('topEdgeVal'),bottomEdgeVal:$('bottomEdgeVal'),
     filterN:$('filterN'),filterVal:$('filterVal'),
-    crescentThr:$('crescentThr'),crescentVal:$('crescentVal')
+    crescentThr:$('crescentThr'),crescentVal:$('crescentVal'),
+    morphR:$('morphR'),morphVal:$('morphVal'),
+    fillHole:$('fillHole'),fillHoleVal:$('fillHoleVal'),
+    useDither:$('useDither')
   };
 
   async function generate(){
@@ -244,7 +284,10 @@ async function main(){
       topEdge:parseFloat(els.topEdge.value)||0.45,
       bottomEdge:parseFloat(els.bottomEdge.value)||0.45,
       filterN:parseInt(els.filterN.value,10)||0,
-      crescentThr:parseFloat(els.crescentThr.value)||0.25
+      crescentThr:parseFloat(els.crescentThr.value)||0.25,
+      morphR:parseInt(els.morphR.value,10)||0,
+      fillHole:parseInt(els.fillHole.value,10)||0,
+      useDither:!!els.useDither.checked
     });
     els.out.textContent = res.text;
     if(els.png.checked){
@@ -273,6 +316,8 @@ async function main(){
     els.bottomEdgeVal.textContent = Number(els.bottomEdge.value).toFixed(2);
     els.filterVal.textContent = els.filterN.value;
     els.crescentVal.textContent = Number(els.crescentThr.value).toFixed(2);
+    els.morphVal.textContent = els.morphR.value;
+    els.fillHoleVal.textContent = els.fillHole.value;
   };
   ['input','change'].forEach(ev=>{
     els.fontSize.addEventListener(ev,()=>{ syncVals(); });
@@ -283,6 +328,8 @@ async function main(){
     els.bottomEdge.addEventListener(ev,()=>{ syncVals(); });
     els.filterN.addEventListener(ev,()=>{ syncVals(); });
     els.crescentThr.addEventListener(ev,()=>{ syncVals(); });
+    els.morphR.addEventListener(ev,()=>{ syncVals(); });
+    els.fillHole.addEventListener(ev,()=>{ syncVals(); });
   });
   syncVals();
 

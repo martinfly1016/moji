@@ -91,6 +91,20 @@
             <input id="crescentThr" type="range" min="0" max="1" step="0.01" value="0.25" />
           </div>
 
+          <div class="split">
+            <div class="field">
+              <div class="label">形态学平滑半径 <span class="badge" id="morphVal">1</span></div>
+              <input id="morphR" type="range" min="0" max="2" step="1" value="1" />
+            </div>
+            <div class="field">
+              <div class="label">填洞阈值 <span class="badge" id="fillHoleVal">5</span></div>
+              <input id="fillHole" type="range" min="0" max="8" step="1" value="5" />
+            </div>
+          </div>
+          <div class="row">
+            <label class="pill"><input id="useDither" type="checkbox" /> 启用边缘抖动（文本模式建议关闭）</label>
+          </div>
+
           <div class="sticky-bottom bar">
             <div class="muted" id="meta">准备就绪</div>
             <div class="right">
