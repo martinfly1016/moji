@@ -158,11 +158,24 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
         charGrid[y-top][x-left] = pass ? '🌕' : '🌑';
         continue;
       }
+      // 规则3：填充块统一实心
+      if(isFill){ charGrid[y-top][x-left] = '🌕'; continue; }
       // 其它：按方向映射
       // If左侧为填充而当前非填充，强制使用“左向渐变”（亮在左、暗在右）
       const leftFill = x>left ? fillMask[y][x-1] : false;
-      let palette = (c.dir==='right')? rightPhases : (c.dir==='left')? leftPhases : neutralPhases;
-      if(!isFill && leftFill) palette = leftPhases;
+      const rightFill = x<right ? fillMask[y][x+1] : false;
+      // 扩展内侧搜索：向左右各看 2 格，若存在填充，半月朝向该侧（代表内侧）
+      let hasLeft=false, hasRight=false; const R=2;
+      for(let s=1;s<=R;s++){
+        if(x-s>=left && fillMask[y][x-s]) hasLeft=true;
+        if(x+s<=right && fillMask[y][x+s]) hasRight=true;
+      }
+      let palette;
+      if(hasLeft && !hasRight) palette = leftPhases;
+      else if(hasRight && !hasLeft) palette = rightPhases;
+      else if(leftFill && !rightFill) palette = leftPhases;
+      else if(rightFill && !leftFill) palette = rightPhases;
+      else palette = (c.dir==='right')? rightPhases : (c.dir==='left')? leftPhases : neutralPhases;
       charGrid[y-top][x-left] = palette[idx];
     }
   }
