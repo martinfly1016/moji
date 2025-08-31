@@ -22,7 +22,7 @@ textarea{min-height:120px;resize:vertical}
 .controls .row{align-items:center}
 
 .preview{background:#0a1019;border:1px dashed #243349;border-radius:12px;min-height:240px;padding:12px;overflow:auto}
-.preview .mono{white-space:pre;line-height:1.1;font-size:18px}
+.preview .mono{white-space:pre;line-height:1.1;font-size:13px}
 .muted{color:var(--muted);font-size:12px}
 .stack{display:flex;flex-direction:column;gap:10px}
 .split{display:flex;gap:10px}
@@ -33,4 +33,3 @@ textarea{min-height:120px;resize:vertical}
 .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .bar .right{display:flex;gap:8px}
 .small{font-size:12px}
-

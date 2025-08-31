@@ -165,7 +165,7 @@ function imageToMoon(imageData,{block=4,invert=false,levels=5,trim=true,vFactor=
 function renderMoonToCanvas(text, canvas){
   const ctx = canvas.getContext('2d');
   const lines = text.split('\n');
-  const size = 28; // emoji size
+  const base = 28; const size = Math.round(base*0.7); // reduce ~30%
   const pad = 8; const family="system-ui, 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji'";
   // measure width by line length * size (emoji roughly square), safe padding
   const w = Math.max(1, ...lines.map(l=>l.length))*size + pad*2;
